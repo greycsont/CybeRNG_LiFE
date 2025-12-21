@@ -27,12 +27,12 @@ public class EndlessGridPatch
     public static IRandomNumberGenerator enemySpawnRNG;
     public static IRandomNumberGenerator enemyBehaviorRNG;
 
+    
+
     [HarmonyPrefix]
     [HarmonyPatch(nameof(EndlessGrid.Start))]
     public static bool RuinStartShuffling(EndlessGrid __instance)
     {
-        //seed = (uint)UnityEngine.Random.Range(1, int.MaxValue);
-
         var eg = __instance;
 
         eg.nms = eg.GetComponent<NavMeshSurface>();
@@ -88,25 +88,26 @@ public class EndlessGridPatch
         return false;
     }
 
+    
+
     [HarmonyPrefix]
     [HarmonyPatch(nameof(EndlessGrid.ShuffleDecks))]
     public static bool ShuffleDeckWithCustomRNG(EndlessGrid __instance)
     {
-
         var eg = __instance;
 
         int num = Mathf.FloorToInt(eg.CurrentPatternPool.Length / 2);
 		for (int i = 0; i < num; i++)
 		{
 			ArenaPattern arenaPattern = eg.CurrentPatternPool[i];
-			int num2 = globalRNG.Range(i, num);
+			int num2 = patternRNG.Range(i, num);
 			eg.CurrentPatternPool[i] = eg.CurrentPatternPool[num2];
 			eg.CurrentPatternPool[num2] = arenaPattern;
 		}
 		for (int j = num; j < eg.CurrentPatternPool.Length; j++)
 		{
 			ArenaPattern arenaPattern2 = eg.CurrentPatternPool[j];
-			int num3 = globalRNG.Range(j, eg.CurrentPatternPool.Length);
+			int num3 = patternRNG.Range(j, eg.CurrentPatternPool.Length);
 			eg.CurrentPatternPool[j] = eg.CurrentPatternPool[num3];
 			eg.CurrentPatternPool[num3] = arenaPattern2;
 		}
@@ -119,14 +120,15 @@ public class EndlessGridPatch
     public static void TryToGenerateRandomizer(ref Collider other)
     {
         if(!other.CompareTag("Player")) return;
-        globalRNG = new XorShift32(seed);
+        globalRNG = new PCG32(seed);
+        GenerateRNG(seed);
     }
 
     [HarmonyPrefix]
     [HarmonyPatch(nameof(EndlessGrid.NextWave))]
     public static void FreshRNG()
     {
-        GenerateRNG(globalRNG.Range(0,2^32));
+        GenerateRNG((int)globalRNG.NextUInt());
     }
 
     [HarmonyPrefix]
@@ -141,14 +143,14 @@ public class EndlessGridPatch
 		for (int i = 0; i < eg.meleePositions.Count; i++)
 		{
 			Vector2 value = eg.meleePositions[i];
-			int index = globalRNG.Range(i, eg.meleePositions.Count);
+			int index = enemySpawnRNG.Range(i, eg.meleePositions.Count);
 			eg.meleePositions[i] = eg.meleePositions[index];
 			eg.meleePositions[index] = value;
 		}
 		for (int j = 0; j < eg.projectilePositions.Count; j++)
 		{
 			Vector2 value2 = eg.projectilePositions[j];
-			int index2 = globalRNG.Range(j, eg.projectilePositions.Count);
+			int index2 = enemySpawnRNG.Range(j, eg.projectilePositions.Count);
 			eg.projectilePositions[j] = eg.projectilePositions[index2];
 			eg.projectilePositions[index2] = value2;
 		}
@@ -173,15 +175,15 @@ public class EndlessGridPatch
 			}
 			if (eg.uncommonAntiBuffer < 1f && num2 > 0)
 			{
-				int num3 = globalRNG.Range(0, eg.currentWave / 10 + 1);
+				int num3 = enemySpawnRNG.Range(0, eg.currentWave / 10 + 1);
 				if (eg.uncommonAntiBuffer <= -0.5f && num3 < 1)
 				{
 					num3 = 1;
 				}
 				if (num3 > 0 && eg.meleePositions.Count > 0)
 				{
-					int num4 = globalRNG.Range(0, eg.prefabs.uncommonEnemies.Length);
-					int num5 = globalRNG.Range(0, eg.prefabs.uncommonEnemies.Length);
+					int num4 = enemySpawnRNG.Range(0, eg.prefabs.uncommonEnemies.Length);
+					int num5 = enemySpawnRNG.Range(0, eg.prefabs.uncommonEnemies.Length);
 					int num6 = 0;
 					while (num4 >= 0 && eg.currentWave < eg.prefabs.uncommonEnemies[num4].spawnWave)
 					{
@@ -244,7 +246,7 @@ public class EndlessGridPatch
 				bool flag3 = false;
 				if (eg.specialAntiBuffer <= 0 && num2 > 0)
 				{
-					int num7 = globalRNG.Range(0, num2 + 1);
+					int num7 = enemySpawnRNG.Range(0, num2 + 1);
 					if (eg.specialAntiBuffer <= -2 && num7 < 1)
 					{
 						num7 = 1;
@@ -253,7 +255,7 @@ public class EndlessGridPatch
 					{
 						for (int k = 0; k < num7; k++)
 						{
-							int num8 = globalRNG.Range(0, eg.prefabs.specialEnemies.Length);
+							int num8 = enemySpawnRNG.Range(0, eg.prefabs.specialEnemies.Length);
 							int indexOfEnemyType = eg.GetIndexOfEnemyType(eg.prefabs.specialEnemies[num8].enemyType);
 							float num9 = 0f;
 							while (num8 >= 0 && eg.usedMeleePositions < eg.meleePositions.Count - 1)
@@ -308,9 +310,9 @@ public class EndlessGridPatch
 		}
 		if ((eg.points > 0 && eg.usedMeleePositions < eg.meleePositions.Count) || (eg.points > 1 && eg.usedProjectilePositions < eg.projectilePositions.Count))
 		{
-			if ((globalRNG.Range(0f, 1f) < 0.5f || eg.usedProjectilePositions >= eg.projectilePositions.Count) && eg.usedMeleePositions < eg.meleePositions.Count)
+			if ((enemySpawnRNG.Range(0f, 1f) < 0.5f || eg.usedProjectilePositions >= eg.projectilePositions.Count) && eg.usedMeleePositions < eg.meleePositions.Count)
 			{
-				int num = globalRNG.Range(0, eg.prefabs.meleeEnemies.Length);
+				int num = enemySpawnRNG.Range(0, eg.prefabs.meleeEnemies.Length);
 				bool flag = false;
 				for (int num2 = num; num2 >= 0; num2--)
 				{
@@ -337,7 +339,7 @@ public class EndlessGridPatch
 			}
 			else if (eg.usedProjectilePositions < eg.projectilePositions.Count)
 			{
-				int num5 = globalRNG.Range(0, eg.prefabs.projectileEnemies.Length);
+				int num5 = enemySpawnRNG.Range(0, eg.prefabs.projectileEnemies.Length);
 				bool flag3 = false;
 				for (int num6 = num5; num6 >= 0; num6--)
 				{
