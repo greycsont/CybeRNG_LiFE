@@ -23,16 +23,14 @@ public sealed class CommandsToRegister(Console con) : CommandRoot(con), IConsole
     private Branch GetBranches()
     {
         return Branch("get",
-            Leaf("seed", () => Log.Info($"{EndlessGridPatch.seed}")),
-            Leaf("seedrun", () => Log.Info($"{EndlessGridPatch.seedRun}"))
+            Leaf("seed", () => Log.Info($"{EndlessGridPatch.seed}"))
         );
     }
 
     private Branch SetBranches()
     {
         return Branch("set",
-            Leaf<int>("seed", seed => EndlessGridPatch.seed = seed),
-            Leaf<bool>("seedrun", seedrun => EndlessGridPatch.seedRun = seedrun)
+            Leaf<int>("seed", seed => EndlessGridPatch.seed = seed)
         );
     }
 
@@ -48,8 +46,7 @@ public sealed class CommandsToRegister(Console con) : CommandRoot(con), IConsole
         Log.Info("    └─ references               List algorithm references");
         
         Log.Info("  set");
-        Log.Info("    ├─ seed <int>               Set global seed");
-        Log.Info("    └─ seedrun <bool>           Enable/disable deterministic RNG");
+        Log.Info("    └─ seed <int>               Set global seed");
         
         Log.Info("  help                          Show this help");
         Log.Info("");

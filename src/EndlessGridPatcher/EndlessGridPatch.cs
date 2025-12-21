@@ -26,13 +26,11 @@ public class EndlessGridPatch
     public static IRandomNumberGenerator patternRNG;
     public static IRandomNumberGenerator enemySpawnRNG;
     public static IRandomNumberGenerator enemyBehaviorRNG;
-    public static bool seedRun = true;
 
     [HarmonyPrefix]
     [HarmonyPatch(nameof(EndlessGrid.Start))]
     public static bool RuinStartShuffling(EndlessGrid __instance)
     {
-        if (seedRun == false) return true;
         //seed = (uint)UnityEngine.Random.Range(1, int.MaxValue);
 
         var eg = __instance;
@@ -94,7 +92,6 @@ public class EndlessGridPatch
     [HarmonyPatch(nameof(EndlessGrid.ShuffleDecks))]
     public static bool ShuffleDeckWithCustomRNG(EndlessGrid __instance)
     {
-        if (seedRun == false) return true;
 
         var eg = __instance;
 
@@ -136,7 +133,6 @@ public class EndlessGridPatch
     [HarmonyPatch(nameof(EndlessGrid.GetEnemies))]
     public static bool GetEnemiesWithCustomRNG(EndlessGrid __instance)
     {
-        if (seedRun == false) return true;
 
         var eg = __instance;
 
@@ -303,7 +299,6 @@ public class EndlessGridPatch
     [HarmonyPatch(nameof(EndlessGrid.GetNextEnemy))]
     public static bool GetNextEnemyWithCustomRNG(EndlessGrid __instance)
     {
-        if (seedRun == false) return true;
 
         var eg = __instance;
 
