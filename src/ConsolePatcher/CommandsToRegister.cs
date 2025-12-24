@@ -2,6 +2,7 @@ using GameConsole;
 using GameConsole.CommandTree;
 using plog;
 using System.Linq;
+using CybeRNG_LiFE.RNG;
 
 namespace CybeRNG_LiFE.Commands;
 
@@ -24,14 +25,14 @@ public sealed class CommandsToRegister(Console con) : CommandRoot(con), IConsole
     private Branch GetBranches()
     {
         return Branch("get",
-            Leaf("seed", () => Log.Info($"{EndlessGridPatch.seed}"))
+            Leaf("seed", () => Log.Info($"{RandomManager.seed}"))
         );
     }
 
     private Branch SetBranches()
     {
         return Branch("set",
-            Leaf<int>("seed", seed => EndlessGridPatch.seed = seed)
+            Leaf<int>("seed", seed => RandomManager.seed = seed)
         );
     }
 

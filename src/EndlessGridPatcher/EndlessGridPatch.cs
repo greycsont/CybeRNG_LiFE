@@ -8,7 +8,6 @@ using Unity.AI.Navigation;
 
 using CybeRNG_LiFE.RNG;
 using CybeRNG_LiFE.Cheats;
-using System.Net;
 
 namespace CybeRNG_LiFE;
 
@@ -23,6 +22,18 @@ namespace CybeRNG_LiFE;
 // 问题是你一开始洗两次牌干嘛
 
 /*
+ * Vanilla game behavior from top to buttom:
+ * Start(random pattern order and shuffle once)
+ * OnTriggerEnter(Add spawn points by previous waves and shuffle once)
+ * NextWave(add previous points and load pattern, if the index of pattern pool exceed length then shuffle and reset index to 0)
+ * Load pattern
+ * OneDone(when all cubes in there target position, spawn hideous mass) *
+ * GetEnemies(randomize spawn position and spawn uncommon and special enemies)
+ * GetNextEnemy(spawn normal enemies)
+ *
+ *
+ *
+ *
  * Current Idea:
  * For the wave started, the globalRNG has a fixed seed, then it will generate RNG for:
  * Pattern, Enemy Spawn Position, Enemy Behavior
@@ -32,88 +43,14 @@ namespace CybeRNG_LiFE;
  * - [x] Remove randomization in Start()
  * - [x] Replace UnityEngine.Random.Range in related functions
  * - [x] fixed pattern in each run
- * - [Maybe] fixed enemy spawn catgeory
+ * - [Maybe] fixed enemy spawn catgeory (how:predetermine the Onedone,GetEnemies and GetNextEnemy calls?)
  */
 
 [HarmonyPatch(typeof(EndlessGrid))]
 public class EndlessGridPatch
 {
-    public static int seed = 114514;
-    private static bool seeded = false;
-    
-    // patternRNG is independent with waveRNG
-    public static IRandomNumberGenerator patternRNG;
-    public static IRandomNumberGenerator waveRNG;
-    public static IRandomNumberGenerator enemySpawnRNG;
-    public static IRandomNumberGenerator enemyBehaviorRNG;
-    public static void FreshRNG()
-    {
-        Plugin.Logger.LogInfo("Freshing RNG for EndlessGrid");
-        GenerateRNG((int)waveRNG.NextUInt());
-    }
-
-    [ThreadStatic]
-    private static Stack<RNGScope> _scopeStack;
-
-    private static Stack<RNGScope> ScopeStack
-    {
-        get
-        {
-            if (_scopeStack == null)
-                _scopeStack = new Stack<RNGScope>();
-            return _scopeStack;
-        }
-    }
-
-    private static RNGScope CurrentScope => ScopeStack.Count > 0 ? ScopeStack.Peek() : RNGScope.Default;
-
-    public static void PushScope(RNGScope scope)
-    {
-        ScopeStack.Push(scope);
-    }
-
-    public static void PopScope()
-    {
-        if (ScopeStack.Count > 0)
-            ScopeStack.Pop();
-    }
-
-    public static void GenerateRNG(int seed)
-    {
-        enemySpawnRNG = new Xoshiro128StarStar(seed);
-    }
-
-    public static int RangeInt(int min, int max)
-    {
-        if(seeded == false) return UnityEngine.Random.Range(min, max);
-        if(CurrentScope == RNGScope.Default) ShowFuckUpSubtitle();
-        return CurrentScope switch
-        {
-            RNGScope.Pattern       => patternRNG.Range(min, max),
-            RNGScope.EnemySpawn    => enemySpawnRNG.Range(min, max),
-            RNGScope.EnemyBehavior => enemyBehaviorRNG.Range(min, max),
-            _ => UnityEngine.Random.Range(min, max)
-        };
-    }
-
-    public static float RangeFloat(float min, float max)
-    {
-        if(seeded == false) return UnityEngine.Random.Range(min, max);
-        if(CurrentScope == RNGScope.Default) ShowFuckUpSubtitle();
-        return CurrentScope switch
-        {
-            RNGScope.Pattern       => patternRNG.Range(min, max),
-            RNGScope.EnemySpawn    => enemySpawnRNG.Range(min, max),
-            RNGScope.EnemyBehavior => enemyBehaviorRNG.Range(min, max),
-            _ => UnityEngine.Random.Range(min, max)
-        };
-    }
-
-    private static void ShowFuckUpSubtitle() => 
-        SubtitleController.Instance.DisplaySubtitle("If you are reading this it means this mod is fucked up. Fuck infinite-state Machine", ignoreSetting: false);
-
-    private static readonly MethodInfo IRNGRangeIntMI = AccessTools.Method(typeof(EndlessGridPatch), nameof(RangeInt));
-    private static readonly MethodInfo IRNGRangeFloatMI = AccessTools.Method(typeof(EndlessGridPatch), nameof(RangeFloat));
+    private static readonly MethodInfo IRNGRangeIntMI = AccessTools.Method(typeof(RandomManager), nameof(RandomManager.RangeInt));
+    private static readonly MethodInfo IRNGRangeFloatMI = AccessTools.Method(typeof(RandomManager), nameof(RandomManager.RangeFloat));
 
     private static readonly MethodInfo UnityRangeIntMI = AccessTools.Method(typeof(UnityEngine.Random), nameof(UnityEngine.Random.Range), new[] { typeof(int), typeof(int) });
     private static readonly MethodInfo UnityRangeFloatMI = AccessTools.Method(typeof(UnityEngine.Random), nameof(UnityEngine.Random.Range), new[] { typeof(float), typeof(float) });
@@ -122,7 +59,7 @@ public class EndlessGridPatch
     {
         for(int i = 0; i < endlessGrid.startWave - 1; i++)
         {
-            FreshRNG();
+            RandomManager.FreshRNG();
             endlessGrid.currentPatternNum++;
             if(endlessGrid.currentPatternNum >= endlessGrid.CurrentPatternPool.Length)
                 endlessGrid.ShuffleDecks();
@@ -134,7 +71,7 @@ public class EndlessGridPatch
         for (int k = 0; k < endlessGrid.CurrentPatternPool.Length; k++)
 		{
 			ArenaPattern arenaPattern = endlessGrid.CurrentPatternPool[k];
-			int num = patternRNG.Range(k, endlessGrid.CurrentPatternPool.Length);
+			int num = RandomManager.patternRNG.Range(k, endlessGrid.CurrentPatternPool.Length);
 			endlessGrid.CurrentPatternPool[k] = endlessGrid.CurrentPatternPool[num];
 			endlessGrid.CurrentPatternPool[num] = arenaPattern;
 		}
@@ -148,14 +85,7 @@ public class EndlessGridPatch
     public static void TryToGenerateRandomizer(ref Collider other)
     {
         if(!other.CompareTag("Player")) return;
-
-        if(seeded == false) return;
-
-        waveRNG = new PCG32(seed);
-
-        patternRNG = new PCG32(seed, 2);
-
-        FreshRNG();
+        RandomManager.TryToInitializeRNG();
     }
 
     [HarmonyTranspiler]
@@ -214,7 +144,7 @@ public class EndlessGridPatch
 
     [HarmonyPrefix]
     [HarmonyPatch(nameof(EndlessGrid.NextWave))]
-    public static void NextWave_Prefix() => FreshRNG();
+    public static void NextWave_Prefix() => RandomManager.FreshRNG();
 
 
     // --- Remove Start Shuffdeck etc. ---
@@ -222,10 +152,10 @@ public class EndlessGridPatch
     [HarmonyPatch(nameof(EndlessGrid.Start))]
     public static bool RuinStartShuffling(EndlessGrid __instance)
     {
-        seeded = CheatsManager.KeepCheatsEnabled
+        RandomManager.seeded = CheatsManager.KeepCheatsEnabled
                   && PrefsManager.Instance.GetBool($"cheat.{UsingCustomRNGCheat.IDENTIFIER}");
 
-        if(seeded == false) return true;
+        if(RandomManager.seeded == false) return true;
 
         var eg = __instance;
 
@@ -287,11 +217,11 @@ public class EndlessGridPatch
     // --- UnityEngine.Random.Range Replacement ---
     [HarmonyPrefix]
     [HarmonyPatch(nameof(EndlessGrid.ShuffleDecks))]
-    public static void ShuffleDeck_Prefix() => PushScope(RNGScope.Pattern);
+    public static void ShuffleDeck_Prefix() => RandomManager.PushScope(RNGScope.Pattern);
 
     [HarmonyPostfix]
     [HarmonyPatch(nameof(EndlessGrid.ShuffleDecks))]
-    public static void ShuffleDeck_Postfix() => PopScope();
+    public static void ShuffleDeck_Postfix() => RandomManager.PopScope();
 
     [HarmonyTranspiler]
     [HarmonyPatch(nameof(EndlessGrid.ShuffleDecks))]
@@ -317,11 +247,11 @@ public class EndlessGridPatch
 
     [HarmonyPrefix]
     [HarmonyPatch(nameof(EndlessGrid.GetEnemies))]
-    public static void GetEnemies_Prefix() => PushScope(RNGScope.EnemySpawn);
+    public static void GetEnemies_Prefix() => RandomManager.PushScope(RNGScope.EnemySpawn);
 
     [HarmonyPostfix]
     [HarmonyPatch(nameof(EndlessGrid.GetEnemies))]
-    public static void GetEnemies_Postfix() => PopScope();
+    public static void GetEnemies_Postfix() => RandomManager.PopScope();
 
     [HarmonyTranspiler]
     [HarmonyPatch(nameof(EndlessGrid.GetEnemies))]
@@ -346,11 +276,11 @@ public class EndlessGridPatch
 
     [HarmonyPrefix]
     [HarmonyPatch(nameof(EndlessGrid.GetNextEnemy))]
-    public static void GetNextEnemies_Prefix() => PushScope(RNGScope.EnemySpawn);
+    public static void GetNextEnemies_Prefix() => RandomManager.PushScope(RNGScope.EnemySpawn);
 
     [HarmonyPostfix]
     [HarmonyPatch(nameof(EndlessGrid.GetNextEnemy))]
-    public static void GetNextEnemies_Postfix() => PopScope();
+    public static void GetNextEnemies_Postfix() => RandomManager.PopScope();
 
     [HarmonyTranspiler]
     [HarmonyPatch(nameof(EndlessGrid.GetNextEnemy))]
