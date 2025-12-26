@@ -52,7 +52,7 @@ public class EndlessGridPatch
     private static readonly MethodInfo UnityRangeIntMI = AccessTools.Method(typeof(UnityEngine.Random), nameof(UnityEngine.Random.Range), new[] { typeof(int), typeof(int)});
     private static readonly MethodInfo UnityRangeFloatMI = AccessTools.Method(typeof(UnityEngine.Random), nameof(UnityEngine.Random.Range), new[] { typeof(float), typeof(float)});
 
-    private static void RandomizePatternAtEndlessGridStart(EndlessGrid endlessGrid)
+    private static void RandomizePatternFromEndlessGridStart(EndlessGrid endlessGrid)
     {
         for (int k = 0; k < endlessGrid.CurrentPatternPool.Length; k++)
 		{
@@ -73,10 +73,17 @@ public class EndlessGridPatch
         if(!other.CompareTag("Player")) return;
         RandomManager.TryToInitializeRNG();
     }
-
+    
+    /// <summary>
+    /// Here! here's what this transpiler is doing
+    /// Add RandomizePatternFromEndlessGridStart()
+    /// Insert RoundRNGAndPattern() in the for loop
+    /// Move ShuffleDecks() from buttom to up
+    /// The order of these manipulation is from top to down in the transpiler
+    /// </summary>
     [HarmonyTranspiler]
     [HarmonyPatch(nameof(EndlessGrid.OnTriggerEnter))]
-    public static IEnumerable<CodeInstruction> InsertFreshRNGAfterShuffleDeck(
+    public static IEnumerable<CodeInstruction> OnTriggerEnterTranspiler(
         IEnumerable<CodeInstruction> instructions)
     {
         // currentWave = startWave - 1;
@@ -86,7 +93,8 @@ public class EndlessGridPatch
 		//IL_002a: ldc.i4.1
 		//IL_002b: sub
 		//IL_002c: stfld int32 EndlessGrid::currentWave
-        //------------------ insert RandomizePatternAtEndlessGridStart() here  ------------------
+        //------------------ insert RandomizePatternFromEndlessGridStart() here  ------------------
+        //------------------ move ShuffleDecks() from bottom to here  ------------------
 		// for (int i = 1; i <= currentWave; i++)
 		//IL_0031: ldc.i4.1
 		//IL_0032: stloc.0
@@ -117,6 +125,30 @@ public class EndlessGridPatch
 		//	IL_004d: ldfld int32 EndlessGrid::currentWave
         //  IL_0052: ble.s IL_0035
 		// end loop
+        // SetGlowColor(roundDown: true);
+		//IL_0054: ldarg.0
+		//IL_0055: ldc.i4.1
+		//IL_0056: call instance void EndlessGrid::SetGlowColor(bool)
+		// waveNumberText.transform.parent.parent.gameObject.SetActive(value: true);
+		//IL_005b: ldarg.0
+		//IL_005c: ldfld class [UnityEngine.UI]UnityEngine.UI.Text EndlessGrid::waveNumberText
+		//IL_0061: callvirt instance class [UnityEngine.CoreModule]UnityEngine.Transform [UnityEngine.CoreModule]UnityEngine.Component::get_transform()
+		//IL_0066: callvirt instance class [UnityEngine.CoreModule]UnityEngine.Transform [UnityEngine.CoreModule]UnityEngine.Transform::get_parent()
+		//IL_006b: callvirt instance class [UnityEngine.CoreModule]UnityEngine.Transform [UnityEngine.CoreModule]UnityEngine.Transform::get_parent()
+		//IL_0070: callvirt instance class [UnityEngine.CoreModule]UnityEngine.GameObject [UnityEngine.CoreModule]UnityEngine.Component::get_gameObject()
+		//IL_0075: ldc.i4.1
+		//IL_0076: callvirt instance void [UnityEngine.CoreModule]UnityEngine.GameObject::SetActive(bool)
+		// ShuffleDecks();
+        // ------------------ Remove these two lines of IL code ------------------
+		//IL_007b: ldarg.0
+		//IL_007c: call instance void EndlessGrid::ShuffleDecks()
+        // -----------------------------------------------------------------------
+		// NextWave();
+		//IL_0081: ldarg.0
+		//IL_0082: call instance void EndlessGrid::NextWave()
+		// (no C# code)
+		//IL_0087: ret
+        
         var matcher = new CodeMatcher(instructions);
 
         matcher
@@ -132,8 +164,12 @@ public class EndlessGridPatch
             new CodeInstruction(OpCodes.Ldarg_0),
             new CodeInstruction(
                 OpCodes.Call,
-                AccessTools.Method(typeof(EndlessGridPatch),nameof(EndlessGridPatch.RandomizePatternAtEndlessGridStart)
-                )
+                AccessTools.Method(typeof(EndlessGridPatch),nameof(EndlessGridPatch.RandomizePatternFromEndlessGridStart))
+            ),
+            new CodeInstruction(OpCodes.Ldarg_0),
+            new CodeInstruction(
+                OpCodes.Call,
+                AccessTools.Method(typeof(EndlessGrid), nameof(EndlessGrid.ShuffleDecks))
             )
         )
         .MatchForward(
@@ -150,7 +186,16 @@ public class EndlessGridPatch
                 OpCodes.Call,
                 AccessTools.Method(typeof(PredetermineManager), nameof(PredetermineManager.RoundCurrentPattern))
             )
-        );
+        )
+        .MatchForward(
+            false,
+            new CodeMatch(
+                OpCodes.Call,
+                AccessTools.Method(typeof(EndlessGrid), nameof(EndlessGrid.ShuffleDecks))
+            )
+        )    
+        .Advance(-1)
+        .RemoveInstructions(2);
 
         return matcher.InstructionEnumeration();
     }

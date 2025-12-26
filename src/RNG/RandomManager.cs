@@ -29,7 +29,6 @@ public class RandomManager
     }
     public static void FreshRNG()
     {
-        Plugin.Logger.LogInfo("Freshing RNG for EndlessGrid");
         GenerateRNG((int)waveRNG.NextUInt());
     }
 
@@ -41,8 +40,8 @@ public class RandomManager
 
     public static int RangeInt(int min, int max, RNGScope scope)
     {
-        if(seeded == false) return UnityEngine.Random.Range(min, max);
-        if(scope == RNGScope.Default) ShowFuckUpSubtitle();
+        if (seeded == false) return UnityEngine.Random.Range(min, max);
+        if (scope == RNGScope.Default) ShowFuckUpSubtitle();
         return scope switch
         {
             RNGScope.Pattern       => patternRNG.Range(min, max),
