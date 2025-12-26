@@ -46,11 +46,11 @@ namespace CybeRNG_LiFE;
 [HarmonyPatch(typeof(EndlessGrid))]
 public class EndlessGridPatch
 {
-    private static readonly MethodInfo IRNGRangeIntMI = AccessTools.Method(typeof(RandomManager), nameof(RandomManager.RangeInt));
-    private static readonly MethodInfo IRNGRangeFloatMI = AccessTools.Method(typeof(RandomManager), nameof(RandomManager.RangeFloat));
+    private static readonly MethodInfo IRNGRangeIntMI = AccessTools.Method(typeof(RandomManager), nameof(RandomManager.RangeInt), new[] { typeof(int), typeof(int), typeof(RNGScope)});
+    private static readonly MethodInfo IRNGRangeFloatMI = AccessTools.Method(typeof(RandomManager), nameof(RandomManager.RangeFloat), new[] { typeof(float), typeof(float), typeof(RNGScope)});
 
-    private static readonly MethodInfo UnityRangeIntMI = AccessTools.Method(typeof(UnityEngine.Random), nameof(UnityEngine.Random.Range), new[] { typeof(int), typeof(int) });
-    private static readonly MethodInfo UnityRangeFloatMI = AccessTools.Method(typeof(UnityEngine.Random), nameof(UnityEngine.Random.Range), new[] { typeof(float), typeof(float) });
+    private static readonly MethodInfo UnityRangeIntMI = AccessTools.Method(typeof(UnityEngine.Random), nameof(UnityEngine.Random.Range), new[] { typeof(int), typeof(int)});
+    private static readonly MethodInfo UnityRangeFloatMI = AccessTools.Method(typeof(UnityEngine.Random), nameof(UnityEngine.Random.Range), new[] { typeof(float), typeof(float)});
 
     private static void RandomizePatternAtEndlessGridStart(EndlessGrid endlessGrid)
     {
@@ -79,48 +79,76 @@ public class EndlessGridPatch
     public static IEnumerable<CodeInstruction> InsertFreshRNGAfterShuffleDeck(
         IEnumerable<CodeInstruction> instructions)
     {
-        // ------------------ insert RandomizePatternAtEndlessGridStart() here  ------------------
-        // ShuffleDecks();
-		//IL_007b: ldarg.0   <- unity did this shit so I did it too
-		//IL_007c: call instance void EndlessGrid::ShuffleDecks()
-        // ------------------ insert RoundCurrentPatternByWave() here ------------------
-		// NextWave();
-		//IL_0081: ldarg.0
-		//IL_0082: call instance void EndlessGrid::NextWave()
-
+        // currentWave = startWave - 1;
+		//IL_0023: ldarg.0
+		//IL_0024: ldarg.0
+		//IL_0025: ldfld int32 EndlessGrid::startWave
+		//IL_002a: ldc.i4.1
+		//IL_002b: sub
+		//IL_002c: stfld int32 EndlessGrid::currentWave
+        //------------------ insert RandomizePatternAtEndlessGridStart() here  ------------------
+		// for (int i = 1; i <= currentWave; i++)
+		//IL_0031: ldc.i4.1
+		//IL_0032: stloc.0
+		// (no C# code)
+        //IL_0033: br.s IL_004b
+		// loop start (head: IL_004b)
+		//	// maxPoints += 3 + i / 3;
+		//	IL_0035: ldarg.0
+		//	IL_0036: ldarg.0
+		//	IL_0037: ldfld int32 EndlessGrid::maxPoints
+		//	IL_003c: ldc.i4.3
+		//	IL_003d: ldloc.0
+		//	IL_003e: ldc.i4.3
+		//	IL_003f: div
+		//	IL_0040: add
+		//	IL_0041: add
+		//	IL_0042: stfld int32 EndlessGrid::maxPoints
+        //  ------------------ insert RoundRNGAndPattern() here ------------------
+		//	// for (int i = 1; i <= currentWave; i++)
+		//	IL_0047: ldloc.0
+		//	IL_0048: ldc.i4.1
+		//	IL_0049: add
+		//	IL_004a: stloc.0
+        //
+		//	// for (int i = 1; i <= currentWave; i++)
+		//	IL_004b: ldloc.0
+		//	IL_004c: ldarg.0
+		//	IL_004d: ldfld int32 EndlessGrid::currentWave
+        //  IL_0052: ble.s IL_0035
+		// end loop
         var matcher = new CodeMatcher(instructions);
 
-        if (!matcher.MatchForward(
-                false,
-                new CodeMatch(
-                    OpCodes.Call, 
-                    AccessTools.Method(typeof(EndlessGrid),nameof(EndlessGrid.ShuffleDecks))
-                )
-            ).IsValid)
-        {
-            Plugin.Logger.LogError(
-                "Failed to find call EndlessGrid::ShuffleDecks() in OnTriggerEnter"
-            );
-            return instructions;
-        }
-
-        matcher.Insert(
+        matcher
+        .MatchForward(
+            false,
+            new CodeMatch(
+                OpCodes.Stfld, 
+                AccessTools.Field(typeof(EndlessGrid),nameof(EndlessGrid.currentWave))
+            )
+        )
+        .Advance(1)
+        .Insert(
             new CodeInstruction(OpCodes.Ldarg_0),
             new CodeInstruction(
                 OpCodes.Call,
                 AccessTools.Method(typeof(EndlessGridPatch),nameof(EndlessGridPatch.RandomizePatternAtEndlessGridStart)
                 )
             )
-        );
-
-        matcher.Advance(1);
-
-        matcher.Insert(
+        )
+        .MatchForward(
+            false,
+            new CodeMatch(
+                OpCodes.Stfld,
+                AccessTools.Field(typeof(EndlessGrid),nameof(EndlessGrid.maxPoints))
+            )
+        )
+        .Advance(1)
+        .Insert(
             new CodeInstruction(OpCodes.Ldarg_0),
             new CodeInstruction(
                 OpCodes.Call,
-                AccessTools.Method(typeof(PredetermineManager),nameof(PredetermineManager.RoundCurrentPatternByWave)
-                )
+                AccessTools.Method(typeof(PredetermineManager), nameof(PredetermineManager.RoundCurrentPattern))
             )
         );
 
@@ -201,14 +229,6 @@ public class EndlessGridPatch
     }
 
     // --- UnityEngine.Random.Range Replacement ---
-    [HarmonyPrefix]
-    [HarmonyPatch(nameof(EndlessGrid.ShuffleDecks))]
-    public static void ShuffleDeck_Prefix() => RandomManager.PushScope(RNGScope.Pattern);
-
-    [HarmonyPostfix]
-    [HarmonyPatch(nameof(EndlessGrid.ShuffleDecks))]
-    public static void ShuffleDeck_Postfix() => RandomManager.PopScope();
-
     [HarmonyTranspiler]
     [HarmonyPatch(nameof(EndlessGrid.ShuffleDecks))]
     public static IEnumerable<CodeInstruction> ShuffleDecks_Transpiler(
@@ -218,26 +238,22 @@ public class EndlessGridPatch
 
         // Replacing UnityEngine.Random(int, int)
         while (matcher.MatchForward(false, new CodeMatch(OpCodes.Call, UnityRangeIntMI)).IsValid)
-            matcher.Set(OpCodes.Call, IRNGRangeIntMI);
+            matcher
+            .Set(OpCodes.Call, IRNGRangeIntMI)
+            .Insert(RandomManager.GetCodeInstructionOfRNGScope(RNGScope.Pattern));
 
         // Reset cursor
         matcher.Start();
 
         // Replacing UnityEngine.Random(float, float)
         while (matcher.MatchForward(false, new CodeMatch(OpCodes.Call, UnityRangeFloatMI)).IsValid)
-            matcher.Set(OpCodes.Call, IRNGRangeFloatMI);
+            matcher
+            .Set(OpCodes.Call, IRNGRangeFloatMI)
+            .Insert(RandomManager.GetCodeInstructionOfRNGScope(RNGScope.Pattern));
 
         return matcher.InstructionEnumeration();
     }
 
-
-    [HarmonyPrefix]
-    [HarmonyPatch(nameof(EndlessGrid.GetEnemies))]
-    public static void GetEnemies_Prefix() => RandomManager.PushScope(RNGScope.EnemySpawn);
-
-    [HarmonyPostfix]
-    [HarmonyPatch(nameof(EndlessGrid.GetEnemies))]
-    public static void GetEnemies_Postfix() => RandomManager.PopScope();
 
     [HarmonyTranspiler]
     [HarmonyPatch(nameof(EndlessGrid.GetEnemies))]
@@ -245,28 +261,39 @@ public class EndlessGridPatch
     {
         var matcher = new CodeMatcher(instructions);
 
+        int callCount = 0;
+
         // Replacing UnityEngine.Random(int, int)
         while (matcher.MatchForward(false, new CodeMatch(OpCodes.Call, UnityRangeIntMI)).IsValid)
-            matcher.Set(OpCodes.Call, IRNGRangeIntMI);
+        {
+            if (callCount < 2)
+            {
+                matcher
+                .Set(OpCodes.Call, IRNGRangeIntMI)
+                .Insert(RandomManager.GetCodeInstructionOfRNGScope(RNGScope.CubePosition));
+                callCount++;
+            }
+            else
+            {
+                matcher
+                .Set(OpCodes.Call, IRNGRangeIntMI)
+                .Insert(RandomManager.GetCodeInstructionOfRNGScope(RNGScope.EnemySpawn));
+            }
+
+        }
+
 
         // Reset cursor
         matcher.Start();
 
         // Replacing UnityEngine.Random(float, float)
         while (matcher.MatchForward(false, new CodeMatch(OpCodes.Call, UnityRangeFloatMI)).IsValid)
-            matcher.Set(OpCodes.Call, IRNGRangeFloatMI);
+            matcher
+            .Set(OpCodes.Call, IRNGRangeFloatMI)
+            .Insert(RandomManager.GetCodeInstructionOfRNGScope(RNGScope.EnemySpawn));
 
         return matcher.InstructionEnumeration();
     }
-
-
-    [HarmonyPrefix]
-    [HarmonyPatch(nameof(EndlessGrid.GetNextEnemy))]
-    public static void GetNextEnemies_Prefix() => RandomManager.PushScope(RNGScope.EnemySpawn);
-
-    [HarmonyPostfix]
-    [HarmonyPatch(nameof(EndlessGrid.GetNextEnemy))]
-    public static void GetNextEnemies_Postfix() => RandomManager.PopScope();
 
     [HarmonyTranspiler]
     [HarmonyPatch(nameof(EndlessGrid.GetNextEnemy))]
@@ -276,14 +303,18 @@ public class EndlessGridPatch
 
         // Replacing UnityEngine.Random(int, int)
         while (matcher.MatchForward(false, new CodeMatch(OpCodes.Call, UnityRangeIntMI)).IsValid)
-            matcher.Set(OpCodes.Call, IRNGRangeIntMI);
+            matcher
+            .Set(OpCodes.Call, IRNGRangeIntMI)
+            .Insert(RandomManager.GetCodeInstructionOfRNGScope(RNGScope.EnemySpawn));
 
         // Reset cursor
         matcher.Start();
 
         // Replacing UnityEngine.Random(float, float)
         while (matcher.MatchForward(false, new CodeMatch(OpCodes.Call, UnityRangeFloatMI)).IsValid)
-            matcher.Set(OpCodes.Call, IRNGRangeFloatMI);
+            matcher
+            .Set(OpCodes.Call, IRNGRangeFloatMI)
+            .Insert(RandomManager.GetCodeInstructionOfRNGScope(RNGScope.EnemySpawn));
 
         return matcher.InstructionEnumeration();
     }
