@@ -31,9 +31,6 @@ namespace CybeRNG_LiFE;
  * GetEnemies(randomize spawn position and spawn uncommon and special enemies)
  * GetNextEnemy(spawn normal enemies)
  *
- *
- *
- *
  * Current Idea:
  * For the wave started, the globalRNG has a fixed seed, then it will generate RNG for:
  * Pattern, Enemy Spawn Position, Enemy Behavior
@@ -54,17 +51,6 @@ public class EndlessGridPatch
 
     private static readonly MethodInfo UnityRangeIntMI = AccessTools.Method(typeof(UnityEngine.Random), nameof(UnityEngine.Random.Range), new[] { typeof(int), typeof(int) });
     private static readonly MethodInfo UnityRangeFloatMI = AccessTools.Method(typeof(UnityEngine.Random), nameof(UnityEngine.Random.Range), new[] { typeof(float), typeof(float) });
-
-    private static void RoundCurrentPatternByWave(EndlessGrid endlessGrid)
-    {
-        for(int i = 0; i < endlessGrid.startWave - 1; i++)
-        {
-            RandomManager.FreshRNG();
-            endlessGrid.currentPatternNum++;
-            if(endlessGrid.currentPatternNum >= endlessGrid.CurrentPatternPool.Length)
-                endlessGrid.ShuffleDecks();
-        }
-    }
 
     private static void RandomizePatternAtEndlessGridStart(EndlessGrid endlessGrid)
     {
@@ -122,7 +108,7 @@ public class EndlessGridPatch
             new CodeInstruction(OpCodes.Ldarg_0),
             new CodeInstruction(
                 OpCodes.Call,
-                AccessTools.Method(typeof(EndlessGridPatch),nameof(RandomizePatternAtEndlessGridStart)
+                AccessTools.Method(typeof(EndlessGridPatch),nameof(EndlessGridPatch.RandomizePatternAtEndlessGridStart)
                 )
             )
         );
@@ -133,7 +119,7 @@ public class EndlessGridPatch
             new CodeInstruction(OpCodes.Ldarg_0),
             new CodeInstruction(
                 OpCodes.Call,
-                AccessTools.Method(typeof(EndlessGridPatch),nameof(RoundCurrentPatternByWave)
+                AccessTools.Method(typeof(PredetermineManager),nameof(PredetermineManager.RoundCurrentPatternByWave)
                 )
             )
         );
@@ -301,6 +287,4 @@ public class EndlessGridPatch
 
         return matcher.InstructionEnumeration();
     }
-
-
 }
