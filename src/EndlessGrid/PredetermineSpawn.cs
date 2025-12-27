@@ -1,7 +1,7 @@
 using System;
-using System.Text.RegularExpressions;
 using System.Linq;
 using CybeRNG_LiFE.RNG;
+using Discord;
 
 
 namespace CybeRNG_LiFE;
@@ -9,7 +9,6 @@ namespace CybeRNG_LiFE;
 public static class PredetermineManager
 {
     // Greatest Shitpost ever
-    public static int currentWave = 0;
 
     public static MiniEndlessGrid miniEndlessGrid = new MiniEndlessGrid(0, 0f, 0, 0);
 
@@ -26,9 +25,9 @@ public static class PredetermineManager
         if (endlessGrid.currentPatternNum >= endlessGrid.CurrentPatternPool.Length)
             endlessGrid.ShuffleDecks();
 
-        currentWave++;
+        miniEndlessGrid.currentWave++;
 
-        PredetermineSpawn(endlessGrid, currentWave);
+        PredetermineSpawn(endlessGrid);
     }
     public static void AddAntiBufferToEndlessGrid(EndlessGrid endlessGrid)
     {
@@ -36,30 +35,29 @@ public static class PredetermineManager
         endlessGrid.uncommonAntiBuffer += miniEndlessGrid.uncommonAntiBuffer;
         endlessGrid.specialAntiBuffer += miniEndlessGrid.specialAntiBuffer;
 
-        miniEndlessGrid.Clear();
+        miniEndlessGrid.ClearForNextWave();
     }
-    
-    private static void PredetermineSpawn(EndlessGrid endlessGrid, int currentWave)
+
+    private static void PredetermineSpawn(EndlessGrid endlessGrid)
     {
         miniEndlessGrid.points = endlessGrid.maxPoints;
 
-        var (m,p,h) = ParsingPattern(endlessGrid.CurrentPatternPool[endlessGrid.currentPatternNum]);
-        miniEndlessGrid.SetPositionCount(m,p,h);
+        var (m, p, h) = ParsingPattern(endlessGrid.CurrentPatternPool[endlessGrid.currentPatternNum]);
+        miniEndlessGrid.SetPositionCount(m, p, h);
 
-        var hideousMassCount = PredetermineHideous(miniEndlessGrid, currentWave);
+        var hideousMassCount = PredetermineHideous(miniEndlessGrid);
 
         var delta = hideousMassCount > 0 ? hideousMassCount * 2 : -1;
 
         miniEndlessGrid.massAntiBuffer = Math.Max(0, miniEndlessGrid.massAntiBuffer += delta);
-        
+
         //var (uncommonCount, specialCount) = PredetermineUncommonAndSpecial();
         //miniEndlessGrid.uncommonAntiBuffer += uncommonCount;
         //miniEndlessGrid.specialAntiBuffer += specialCount;
-        Plugin.Logger.LogInfo($"[PredetermineSpawn] Wave {currentWave}: Hideous Masses Predetermined: {hideousMassCount}, Mass AntiBuffer: {miniEndlessGrid.massAntiBuffer}");
+        Plugin.Logger.LogInfo($"[PredetermineSpawn] Wave {miniEndlessGrid.currentWave}: Hideous Masses Predetermined: {hideousMassCount}, Mass AntiBuffer: {miniEndlessGrid.massAntiBuffer}");
     }
 
-    private static int PredetermineHideous(MiniEndlessGrid grid, 
-                                           int currentWave)
+    private static int PredetermineHideous(MiniEndlessGrid grid)
     {
         var Hcount = miniEndlessGrid.hideousMassPositionCount;
         Plugin.Logger.LogDebug($"Hcount: {Hcount}");
@@ -67,51 +65,50 @@ public static class PredetermineManager
 
         for (int i = 0; i < Hcount; i++)
         {
-            if (grid.massAntiBuffer == 0 && 
-                currentWave >= (hideousMassesCount + 1) * 10 && 
+            if (grid.massAntiBuffer == 0 &&
+                grid.currentWave >= (hideousMassesCount + 1) * 10 &&
                 grid.points > 70)
             {
                 hideousMassesCount++;
                 grid.points -= 45;
             }
         }
-        
+
         return hideousMassesCount;
     }
 
     private static (float uncommonCount, int specialCount) PredetermineUncommonAndSpecial(int hideousMassCount,
-                                                                                          int currentWave,
                                                                                           MiniEndlessGrid miniEndlessGrid,
-                                                                                          PrefabDatabase endlessGridPerfab)
+                                                                                          EndlessGrid endlessGrid)
     {
         float uncommonCount = 0f;
         int specialCount = 0;
-        
+
         // 1. calculate baseSpawnPoint
-        int baseSpawnPoint = currentWave / 10; // currentWave DIV 10
-        baseSpawnPoint -= hideousMassCount;
-        
+        miniEndlessGrid.baseSpawnPoint = miniEndlessGrid.currentWave / 10; // currentWave DIV 10
+        miniEndlessGrid.baseSpawnPoint -= hideousMassCount;
+
         // 如果没有可用数量，直接返回
-        if (baseSpawnPoint <= 0) return (0f, 0);
-        
+        if (miniEndlessGrid.baseSpawnPoint <= 0) return (0f, 0);
+
         // 3. Predetermine Uncommon
-        if (miniEndlessGrid.uncommonAntiBuffer < 1f && baseSpawnPoint > 0)
+        if (miniEndlessGrid.uncommonAntiBuffer < 1f && miniEndlessGrid.baseSpawnPoint > 0)
         {
             // It need to consume a RNG value so don't use lambda expression here
-            var numberOfFirstUncommon = RandomManager.enemySpawnRNG.Range(0, currentWave / 10 + 1);
+            var numberOfFirstUncommon = RandomManager.enemySpawnRNG.Range(0, miniEndlessGrid.currentWave / 10 + 1);
             if (miniEndlessGrid.uncommonAntiBuffer <= 0.5f && numberOfFirstUncommon < 1)
                 numberOfFirstUncommon = 1;
-            
+
             if (miniEndlessGrid.massAntiBuffer < 1f && miniEndlessGrid.meleePositionsCount > 0)
             {
-                int firstUncommonIndex = RandomManager.enemySpawnRNG.Range(0,endlessGridPerfab.uncommonEnemies.Length);
-                int secondUncommonIndex = RandomManager.enemySpawnRNG.Range(0,endlessGridPerfab.uncommonEnemies.Length);
+                int firstUncommonIndex = RandomManager.enemySpawnRNG.Range(0, endlessGrid.prefabs.uncommonEnemies.Length);
+                int secondUncommonIndex = RandomManager.enemySpawnRNG.Range(0, endlessGrid.prefabs.uncommonEnemies.Length);
                 int numberOfSecondUncommon = 0;
 
-                while (firstUncommonIndex >= 0 && currentWave < endlessGridPerfab.uncommonEnemies[firstUncommonIndex].spawnWave)
+                while (firstUncommonIndex >= 0 && miniEndlessGrid.currentWave < endlessGrid.prefabs.uncommonEnemies[firstUncommonIndex].spawnWave)
                     firstUncommonIndex--;
-            
-                while (secondUncommonIndex >= 0 && (currentWave < endlessGridPerfab.uncommonEnemies[secondUncommonIndex].spawnWave || secondUncommonIndex == firstUncommonIndex))
+
+                while (secondUncommonIndex >= 0 && (miniEndlessGrid.currentWave < endlessGrid.prefabs.uncommonEnemies[secondUncommonIndex].spawnWave || secondUncommonIndex == firstUncommonIndex))
                 {
                     if (secondUncommonIndex == 0)
                     {
@@ -122,9 +119,9 @@ public static class PredetermineManager
                 }
                 if (firstUncommonIndex >= 0)
                 {
-                    if (currentWave > 16)
+                    if (miniEndlessGrid.currentWave > 16)
                     {
-                        if (currentWave < 25)
+                        if (miniEndlessGrid.currentWave < 25)
                         {
                             numberOfFirstUncommon++;
                         }
@@ -133,25 +130,28 @@ public static class PredetermineManager
                             numberOfSecondUncommon = numberOfFirstUncommon;
                         }
                     }
-                    bool flag = miniEndlessGrid.meleePositionsCount > 0;
-                    miniEndlessGrid.meleePositionsCount = Math.Max(0, miniEndlessGrid.meleePositionsCount - numberOfFirstUncommon);
-                    bool flag2 = miniEndlessGrid.meleePositionsCount > 0;
-                    miniEndlessGrid.meleePositionsCount = Math.Max(0, miniEndlessGrid.meleePositionsCount - numberOfSecondUncommon);
-                    if (flag || flag2)
+
+                    bool isFirstUncommonSpawnSuccessfully = DetermineUncommonSpawnPosition(firstUncommonIndex, numberOfFirstUncommon, miniEndlessGrid, endlessGrid);
+                    bool isSecondUncommonSpawnSuccessfully = false;
+                    if (numberOfSecondUncommon > 0)
+                        isSecondUncommonSpawnSuccessfully = DetermineUncommonSpawnPosition(secondUncommonIndex, numberOfSecondUncommon, miniEndlessGrid, endlessGrid);                    
+                    if (isFirstUncommonSpawnSuccessfully || isSecondUncommonSpawnSuccessfully)
                     {
                         if (miniEndlessGrid.uncommonAntiBuffer < 0f)
                         {
                             miniEndlessGrid.uncommonAntiBuffer = 0f;
                         }
-                        if (flag)
+                        if (isFirstUncommonSpawnSuccessfully)
                         {
-                            miniEndlessGrid.uncommonAntiBuffer += (endlessGridPerfab.uncommonEnemies[firstUncommonIndex].enemyType == EnemyType.Stalker || endlessGridPerfab.uncommonEnemies[firstUncommonIndex].enemyType == EnemyType.Idol) ? 1f : 0.5f;
+                            miniEndlessGrid.uncommonAntiBuffer += (endlessGrid.prefabs.uncommonEnemies[firstUncommonIndex].enemyType == EnemyType.Stalker 
+                                                                   || endlessGrid.prefabs.uncommonEnemies[firstUncommonIndex].enemyType == EnemyType.Idol) ? 1f : 0.5f;
                         }
-                        if (flag2)
+                        if (isSecondUncommonSpawnSuccessfully)
                         {
-                            miniEndlessGrid.uncommonAntiBuffer += (endlessGridPerfab.uncommonEnemies[secondUncommonIndex].enemyType == EnemyType.Stalker || endlessGridPerfab.uncommonEnemies[secondUncommonIndex].enemyType == EnemyType.Idol) ? 1f : 0.5f;
+                            miniEndlessGrid.uncommonAntiBuffer += (endlessGrid.prefabs.uncommonEnemies[secondUncommonIndex].enemyType == EnemyType.Stalker 
+                                                                   || endlessGrid.prefabs.uncommonEnemies[secondUncommonIndex].enemyType == EnemyType.Idol) ? 1f : 0.5f;
                         }
-                        baseSpawnPoint -= (!(flag && flag2)) ? 1 : 2;
+                        miniEndlessGrid.baseSpawnPoint -= (!(isFirstUncommonSpawnSuccessfully && isSecondUncommonSpawnSuccessfully)) ? 1 : 2;
                     }
                 }
             }
@@ -160,33 +160,28 @@ public static class PredetermineManager
         {
             miniEndlessGrid.uncommonAntiBuffer--;
         }
-        
-        /*// 4. 预测 Special 敌人（需要 currentWave > 15）
-        if (currentWave > 15 && miniEndlessGrid.specialAntiBuffer <= 0 && baseSpawnPoint > 0 && miniEndlessGrid.meleePositionsCount > 0)
+        /*
+        if (currentWave > 15)
         {
-            // 模拟随机数范围：Random.Range(0, num2 + 1)
-            int maxPossibleSpecial = num2 + 1;
-            
-            // 计算期望值
-            float expectedSpecial = maxPossibleSpecial / 2f;
-            
-            // 考虑 buffer 的影响
-            if (specialAntiBuffer <= -2)
+            var isSpawnSpecialSuccessfully = false;
+            if (miniEndlessGrid.specialAntiBuffer <= 0 && baseSpawnPoint > 0)
             {
-                expectedSpecial = Math.Max(expectedSpecial, 1f);
+                int numberOfSpecial = RandomManager.enemySpawnRNG.Range(0, baseSpawnPoint + 1);
+                if (miniEndlessGrid.specialAntiBuffer <= -2 && numberOfSpecial < 1)
+                {
+                    numberOfSpecial = 1;
+                }
+                if (numberOfSpecial > 0 && miniEndlessGrid.meleePositionsCount > 0)
+                {
+                    for (int i = 0; i < numberOfSpecial; i++)
+                    {
+                        int indexOfSpecial = RandomManager.enemySpawnRNG.Range(0, endlessGridPerfab.specialEnemies.Length);
+                        int indexOfEnemyType = 
+                    }
+                }
             }
-            
-            // 不能超过可用位置
-            expectedSpecial = Math.Min(expectedSpecial, meleePositionsCount);
-            
-            // 这里还需要考虑点数是否足够（简化处理）
-            // 假设每个 special 敌人平均消耗 30 点
-            int maxByPoints = availablePoints / 30;
-            expectedSpecial = Math.Min(expectedSpecial, maxByPoints);
-            
-            specialCount = Mathf.FloorToInt(expectedSpecial);
         }*/
-        
+
         return (uncommonCount, specialCount);
     }
 
@@ -198,7 +193,7 @@ public static class PredetermineManager
             return (0, 0, 0);
         }
         string[] rows = currentPattern.prefabs.Split('\n');
-    
+
         if (rows.Length != 16) return (0, 0, 0);
 
         int meleePositionCount = rows.Where(r => r.Length == 16)
@@ -207,7 +202,47 @@ public static class PredetermineManager
                     .Sum(r => r.Count(c => c == 'p'));
         int hideousMassPositionCount = rows.Where(r => r.Length == 16)
                     .Sum(r => r.Count(c => c == 'H'));
-        
+
         return (meleePositionCount, projectilePositionsCount, hideousMassPositionCount);
+    }
+    
+    private static bool DetermineUncommonSpawnPosition(int target, int amount, MiniEndlessGrid miniEndlessGrid, EndlessGrid endlessGrid)
+    {
+        amount = endlessGrid.CapUncommonsAmount(target, amount);
+        var spawnResult = false;
+        for (int i = 0; i < amount; i++)
+        {
+            var endlessEnemy = endlessGrid.prefabs.uncommonEnemies[target];
+            bool spawnOnProjectile = endlessEnemy.enemyType != EnemyType.Stalker && endlessEnemy.enemyType != EnemyType.Guttertank && RandomManager.enemySpawnRNG.Range(0f, 1f) > 0.5f;
+            if (spawnOnProjectile && miniEndlessGrid.projectilePositionsCount <= 0)
+            {
+                spawnOnProjectile = false;
+            }
+            if (miniEndlessGrid.meleePositionsCount <= 0)
+            {
+                break;
+            }
+            // IDK why but the original did that
+            var indexOfEnemyType = miniEndlessGrid.GetIndexOfEnemyType(endlessEnemy.enemyType);
+            int extraPointReduced = endlessEnemy.costIncreasePerSpawn * miniEndlessGrid.spawnedEnemyTypes[target].amount;
+            bool isSpawnRadiantSuccessfully = miniEndlessGrid.DetermineSpawnRadiant(endlessEnemy, indexOfEnemyType);
+            // I think it can be write as | isSpawnRadiantSuccessfully ? 3 : 1 |
+            miniEndlessGrid.points -= endlessEnemy.spawnCost * ((!isSpawnRadiantSuccessfully) ? 1 : 3) + extraPointReduced;
+            miniEndlessGrid.spawnedEnemyTypes[indexOfEnemyType].amount++;
+            if (spawnOnProjectile)
+            {
+                miniEndlessGrid.projectilePositionsCount--;
+            }
+            else
+            {
+                miniEndlessGrid.meleePositionsCount--;
+            }
+            spawnResult = true;
+            if (isSpawnRadiantSuccessfully)
+            {
+                amount -= 2;
+            }
+        }
+        return spawnResult;
     }
 }

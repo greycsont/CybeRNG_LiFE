@@ -1,4 +1,3 @@
-using System;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Collections.Generic;
@@ -46,21 +45,21 @@ namespace CybeRNG_LiFE;
 [HarmonyPatch(typeof(EndlessGrid))]
 public class EndlessGridPatch
 {
-    private static readonly MethodInfo IRNGRangeIntMI = AccessTools.Method(typeof(RandomManager), nameof(RandomManager.RangeInt), new[] { typeof(int), typeof(int), typeof(RNGScope)});
-    private static readonly MethodInfo IRNGRangeFloatMI = AccessTools.Method(typeof(RandomManager), nameof(RandomManager.RangeFloat), new[] { typeof(float), typeof(float), typeof(RNGScope)});
+    private static readonly MethodInfo IRNGRangeIntMI = AccessTools.Method(typeof(RandomManager), nameof(RandomManager.RangeInt), new[] { typeof(int), typeof(int), typeof(RNGScope) });
+    private static readonly MethodInfo IRNGRangeFloatMI = AccessTools.Method(typeof(RandomManager), nameof(RandomManager.RangeFloat), new[] { typeof(float), typeof(float), typeof(RNGScope) });
 
-    private static readonly MethodInfo UnityRangeIntMI = AccessTools.Method(typeof(UnityEngine.Random), nameof(UnityEngine.Random.Range), new[] { typeof(int), typeof(int)});
-    private static readonly MethodInfo UnityRangeFloatMI = AccessTools.Method(typeof(UnityEngine.Random), nameof(UnityEngine.Random.Range), new[] { typeof(float), typeof(float)});
+    private static readonly MethodInfo UnityRangeIntMI = AccessTools.Method(typeof(Random), nameof(Random.Range), new[] { typeof(int), typeof(int) });
+    private static readonly MethodInfo UnityRangeFloatMI = AccessTools.Method(typeof(Random), nameof(Random.Range), new[] { typeof(float), typeof(float) });
 
     private static void RandomizePatternFromEndlessGridStart(EndlessGrid endlessGrid)
     {
         for (int k = 0; k < endlessGrid.CurrentPatternPool.Length; k++)
-		{
-			ArenaPattern arenaPattern = endlessGrid.CurrentPatternPool[k];
-			int num = RandomManager.patternRNG.Range(k, endlessGrid.CurrentPatternPool.Length);
-			endlessGrid.CurrentPatternPool[k] = endlessGrid.CurrentPatternPool[num];
-			endlessGrid.CurrentPatternPool[num] = arenaPattern;
-		}
+        {
+            ArenaPattern arenaPattern = endlessGrid.CurrentPatternPool[k];
+            int num = RandomManager.patternRNG.Range(k, endlessGrid.CurrentPatternPool.Length);
+            endlessGrid.CurrentPatternPool[k] = endlessGrid.CurrentPatternPool[num];
+            endlessGrid.CurrentPatternPool[num] = arenaPattern;
+        }
 
         endlessGrid.ShuffleDecks();
     }
@@ -70,10 +69,10 @@ public class EndlessGridPatch
     [HarmonyPatch(nameof(EndlessGrid.OnTriggerEnter))]
     public static void TryToGenerateRandomizer(ref Collider other)
     {
-        if(!other.CompareTag("Player")) return;
+        if (!other.CompareTag("Player")) return;
         RandomManager.TryToInitializeRNG();
     }
-    
+
     /// <summary>
     /// Here! here's what this transpiler is doing
     /// Add RandomizePatternFromEndlessGridStart()
@@ -87,76 +86,76 @@ public class EndlessGridPatch
         IEnumerable<CodeInstruction> instructions)
     {
         // currentWave = startWave - 1;
-		//IL_0023: ldarg.0
-		//IL_0024: ldarg.0
-		//IL_0025: ldfld int32 EndlessGrid::startWave
-		//IL_002a: ldc.i4.1
-		//IL_002b: sub
-		//IL_002c: stfld int32 EndlessGrid::currentWave
+        //IL_0023: ldarg.0
+        //IL_0024: ldarg.0
+        //IL_0025: ldfld int32 EndlessGrid::startWave
+        //IL_002a: ldc.i4.1
+        //IL_002b: sub
+        //IL_002c: stfld int32 EndlessGrid::currentWave
         //------------------ insert RandomizePatternFromEndlessGridStart() here  ------------------
         //------------------ move ShuffleDecks() from bottom to here  ------------------
-		// for (int i = 1; i <= currentWave; i++)
-		//IL_0031: ldc.i4.1
-		//IL_0032: stloc.0
-		// (no C# code)
+        // for (int i = 1; i <= currentWave; i++)
+        //IL_0031: ldc.i4.1
+        //IL_0032: stloc.0
+        // (no C# code)
         //IL_0033: br.s IL_004b
-		// loop start (head: IL_004b)
-		//	// maxPoints += 3 + i / 3;
-		//	IL_0035: ldarg.0
-		//	IL_0036: ldarg.0
-		//	IL_0037: ldfld int32 EndlessGrid::maxPoints
-		//	IL_003c: ldc.i4.3
-		//	IL_003d: ldloc.0
-		//	IL_003e: ldc.i4.3
-		//	IL_003f: div
-		//	IL_0040: add
-		//	IL_0041: add
-		//	IL_0042: stfld int32 EndlessGrid::maxPoints
+        // loop start (head: IL_004b)
+        //	// maxPoints += 3 + i / 3;
+        //	IL_0035: ldarg.0
+        //	IL_0036: ldarg.0
+        //	IL_0037: ldfld int32 EndlessGrid::maxPoints
+        //	IL_003c: ldc.i4.3
+        //	IL_003d: ldloc.0
+        //	IL_003e: ldc.i4.3
+        //	IL_003f: div
+        //	IL_0040: add
+        //	IL_0041: add
+        //	IL_0042: stfld int32 EndlessGrid::maxPoints
         //  ------------------ insert RoundRNGAndPattern() here ------------------
-		//	// for (int i = 1; i <= currentWave; i++)
-		//	IL_0047: ldloc.0
-		//	IL_0048: ldc.i4.1
-		//	IL_0049: add
-		//	IL_004a: stloc.0
+        //	// for (int i = 1; i <= currentWave; i++)
+        //	IL_0047: ldloc.0
+        //	IL_0048: ldc.i4.1
+        //	IL_0049: add
+        //	IL_004a: stloc.0
         //
-		//	// for (int i = 1; i <= currentWave; i++)
-		//	IL_004b: ldloc.0
-		//	IL_004c: ldarg.0
-		//	IL_004d: ldfld int32 EndlessGrid::currentWave
+        //	// for (int i = 1; i <= currentWave; i++)
+        //	IL_004b: ldloc.0
+        //	IL_004c: ldarg.0
+        //	IL_004d: ldfld int32 EndlessGrid::currentWave
         //  IL_0052: ble.s IL_0035
-		// end loop
+        // end loop
         // SetGlowColor(roundDown: true);
-		//IL_0054: ldarg.0
-		//IL_0055: ldc.i4.1
-		//IL_0056: call instance void EndlessGrid::SetGlowColor(bool)
-		// waveNumberText.transform.parent.parent.gameObject.SetActive(value: true);
-		//IL_005b: ldarg.0
-		//IL_005c: ldfld class [UnityEngine.UI]UnityEngine.UI.Text EndlessGrid::waveNumberText
-		//IL_0061: callvirt instance class [UnityEngine.CoreModule]UnityEngine.Transform [UnityEngine.CoreModule]UnityEngine.Component::get_transform()
-		//IL_0066: callvirt instance class [UnityEngine.CoreModule]UnityEngine.Transform [UnityEngine.CoreModule]UnityEngine.Transform::get_parent()
-		//IL_006b: callvirt instance class [UnityEngine.CoreModule]UnityEngine.Transform [UnityEngine.CoreModule]UnityEngine.Transform::get_parent()
-		//IL_0070: callvirt instance class [UnityEngine.CoreModule]UnityEngine.GameObject [UnityEngine.CoreModule]UnityEngine.Component::get_gameObject()
-		//IL_0075: ldc.i4.1
-		//IL_0076: callvirt instance void [UnityEngine.CoreModule]UnityEngine.GameObject::SetActive(bool)
-		// ShuffleDecks();
+        //IL_0054: ldarg.0
+        //IL_0055: ldc.i4.1
+        //IL_0056: call instance void EndlessGrid::SetGlowColor(bool)
+        // waveNumberText.transform.parent.parent.gameObject.SetActive(value: true);
+        //IL_005b: ldarg.0
+        //IL_005c: ldfld class [UnityEngine.UI]UnityEngine.UI.Text EndlessGrid::waveNumberText
+        //IL_0061: callvirt instance class [UnityEngine.CoreModule]UnityEngine.Transform [UnityEngine.CoreModule]UnityEngine.Component::get_transform()
+        //IL_0066: callvirt instance class [UnityEngine.CoreModule]UnityEngine.Transform [UnityEngine.CoreModule]UnityEngine.Transform::get_parent()
+        //IL_006b: callvirt instance class [UnityEngine.CoreModule]UnityEngine.Transform [UnityEngine.CoreModule]UnityEngine.Transform::get_parent()
+        //IL_0070: callvirt instance class [UnityEngine.CoreModule]UnityEngine.GameObject [UnityEngine.CoreModule]UnityEngine.Component::get_gameObject()
+        //IL_0075: ldc.i4.1
+        //IL_0076: callvirt instance void [UnityEngine.CoreModule]UnityEngine.GameObject::SetActive(bool)
+        // ShuffleDecks();
         // ------------------ Remove these two lines of IL code ------------------
-		//IL_007b: ldarg.0
-		//IL_007c: call instance void EndlessGrid::ShuffleDecks()
+        //IL_007b: ldarg.0
+        //IL_007c: call instance void EndlessGrid::ShuffleDecks()
         // -----------------------------------------------------------------------
-		// NextWave();
-		//IL_0081: ldarg.0
-		//IL_0082: call instance void EndlessGrid::NextWave()
-		// (no C# code)
-		//IL_0087: ret
-        
+        // NextWave();
+        //IL_0081: ldarg.0
+        //IL_0082: call instance void EndlessGrid::NextWave()
+        // (no C# code)
+        //IL_0087: ret
+
         var matcher = new CodeMatcher(instructions);
 
         matcher
         .MatchForward(
             false,
             new CodeMatch(
-                OpCodes.Stfld, 
-                AccessTools.Field(typeof(EndlessGrid),nameof(EndlessGrid.currentWave))
+                OpCodes.Stfld,
+                AccessTools.Field(typeof(EndlessGrid), nameof(EndlessGrid.currentWave))
             )
         )
         .Advance(1)
@@ -164,7 +163,7 @@ public class EndlessGridPatch
             new CodeInstruction(OpCodes.Ldarg_0),
             new CodeInstruction(
                 OpCodes.Call,
-                AccessTools.Method(typeof(EndlessGridPatch),nameof(EndlessGridPatch.RandomizePatternFromEndlessGridStart))
+                AccessTools.Method(typeof(EndlessGridPatch), nameof(RandomizePatternFromEndlessGridStart))
             ),
             new CodeInstruction(OpCodes.Ldarg_0),
             new CodeInstruction(
@@ -176,7 +175,7 @@ public class EndlessGridPatch
             false,
             new CodeMatch(
                 OpCodes.Stfld,
-                AccessTools.Field(typeof(EndlessGrid),nameof(EndlessGrid.maxPoints))
+                AccessTools.Field(typeof(EndlessGrid), nameof(EndlessGrid.maxPoints))
             )
         )
         .Advance(1)
@@ -193,7 +192,7 @@ public class EndlessGridPatch
                 OpCodes.Call,
                 AccessTools.Method(typeof(EndlessGrid), nameof(EndlessGrid.ShuffleDecks))
             )
-        )    
+        )
         .Advance(-1)
         .RemoveInstructions(2);
 
@@ -214,59 +213,59 @@ public class EndlessGridPatch
         RandomManager.seeded = CheatsManager.KeepCheatsEnabled
                   && PrefsManager.Instance.GetBool($"cheat.{UsingCustomRNGCheat.IDENTIFIER}");
 
-        if(RandomManager.seeded == false) return true;
+        if (RandomManager.seeded == false) return true;
 
         var eg = __instance;
 
         eg.nms = eg.GetComponent<NavMeshSurface>();
-		eg.anw = eg.GetComponent<ActivateNextWave>();
-		eg.gz = GoreZone.ResolveGoreZone(eg.transform);
-		eg.cubes = new EndlessCube[16][];
-		for (int i = 0; i < 16; i++)
-		{
-			eg.cubes[i] = new EndlessCube[16];
-			for (int j = 0; j < 16; j++)
-			{
-				GameObject gameObject = UnityEngine.Object.Instantiate(eg.gridCube, eg.transform, worldPositionStays: true);
-				gameObject.SetActive(value: true);
-				gameObject.transform.localPosition = new Vector3((float)i * eg.offset, 0f, (float)j * eg.offset);
-				eg.cubes[i][j] = gameObject.GetComponent<EndlessCube>();
-				eg.cubes[i][j].positionOnGrid = new Vector2Int(i, j);
-			}
-		}
-		/*for (int k = 0; k < __instance.CurrentPatternPool.Length; k++)
+        eg.anw = eg.GetComponent<ActivateNextWave>();
+        eg.gz = GoreZone.ResolveGoreZone(eg.transform);
+        eg.cubes = new EndlessCube[16][];
+        for (int i = 0; i < 16; i++)
+        {
+            eg.cubes[i] = new EndlessCube[16];
+            for (int j = 0; j < 16; j++)
+            {
+                GameObject gameObject = Object.Instantiate(eg.gridCube, eg.transform, worldPositionStays: true);
+                gameObject.SetActive(value: true);
+                gameObject.transform.localPosition = new Vector3(i * eg.offset, 0f, j * eg.offset);
+                eg.cubes[i][j] = gameObject.GetComponent<EndlessCube>();
+                eg.cubes[i][j].positionOnGrid = new Vector2Int(i, j);
+            }
+        }
+        /*for (int k = 0; k < __instance.CurrentPatternPool.Length; k++)
 		{
 			ArenaPattern arenaPattern = __instance.CurrentPatternPool[k];
 			int num = UnityEngine.Random.Range(k, __instance.CurrentPatternPool.Length);
 			__instance.CurrentPatternPool[k] = __instance.CurrentPatternPool[num];
 			__instance.CurrentPatternPool[num] = arenaPattern;
 		}*/
-		eg.crorea = MonoSingleton<CrowdReactions>.Instance;
-		if (eg.crorea != null)
-		{
-			eg.crowdReactions = true;
-		}
+        eg.crorea = MonoSingleton<CrowdReactions>.Instance;
+        if (eg.crorea != null)
+        {
+            eg.crowdReactions = true;
+        }
 
-		//__instance.ShuffleDecks();
+        //__instance.ShuffleDecks();
 
-		PresenceController.UpdateCyberGrindWave(0);
-		eg.mats = eg.GetComponentInChildren<MeshRenderer>().sharedMaterials;
-		Material[] array = eg.mats;
-		foreach (Material obj in array)
-		{
-			obj.SetColor(UKShaderProperties.EmissiveColor, Color.blue);
-			obj.SetFloat(UKShaderProperties.EmissiveIntensity, 0.2f * eg.glowMultiplier);
-			obj.SetFloat("_PCGamerMode", 0f);
-			obj.SetFloat("_GradientScale", 2f);
-			obj.SetFloat("_GradientFalloff", 5f);
-			obj.SetFloat("_GradientSpeed", 10f);
-			obj.SetVector("_WorldOffset", new Vector4(0f, 0f, 62.5f, 0f));
-			eg.targetColor = Color.blue;   
-		}
-		eg.TrySetupStaticGridMesh();
-		int? highestWaveForDifficulty = WaveUtils.GetHighestWaveForDifficulty(MonoSingleton<PrefsManager>.Instance.GetInt("difficulty"));
-		int num2 = MonoSingleton<PrefsManager>.Instance.GetInt("cyberGrind.startingWave");
-		eg.startWave = (WaveUtils.IsWaveSelectable(num2, highestWaveForDifficulty.GetValueOrDefault()) ? num2 : 0);
+        PresenceController.UpdateCyberGrindWave(0);
+        eg.mats = eg.GetComponentInChildren<MeshRenderer>().sharedMaterials;
+        Material[] array = eg.mats;
+        foreach (Material obj in array)
+        {
+            obj.SetColor(UKShaderProperties.EmissiveColor, Color.blue);
+            obj.SetFloat(UKShaderProperties.EmissiveIntensity, 0.2f * eg.glowMultiplier);
+            obj.SetFloat("_PCGamerMode", 0f);
+            obj.SetFloat("_GradientScale", 2f);
+            obj.SetFloat("_GradientFalloff", 5f);
+            obj.SetFloat("_GradientSpeed", 10f);
+            obj.SetVector("_WorldOffset", new Vector4(0f, 0f, 62.5f, 0f));
+            eg.targetColor = Color.blue;
+        }
+        eg.TrySetupStaticGridMesh();
+        int? highestWaveForDifficulty = WaveUtils.GetHighestWaveForDifficulty(MonoSingleton<PrefsManager>.Instance.GetInt("difficulty"));
+        int num2 = MonoSingleton<PrefsManager>.Instance.GetInt("cyberGrind.startingWave");
+        eg.startWave = WaveUtils.IsWaveSelectable(num2, highestWaveForDifficulty.GetValueOrDefault()) ? num2 : 0;
 
         Plugin.Logger.LogInfo($"Removed ShuffleDeck and randomization on Endlessgrid::Start().");
 
@@ -343,6 +342,30 @@ public class EndlessGridPatch
     [HarmonyTranspiler]
     [HarmonyPatch(nameof(EndlessGrid.GetNextEnemy))]
     public static IEnumerable<CodeInstruction> GetNextEnemy_Transpiler(IEnumerable<CodeInstruction> instructions)
+    {
+        var matcher = new CodeMatcher(instructions);
+
+        // Replacing UnityEngine.Random(int, int)
+        while (matcher.MatchForward(false, new CodeMatch(OpCodes.Call, UnityRangeIntMI)).IsValid)
+            matcher
+            .Set(OpCodes.Call, IRNGRangeIntMI)
+            .Insert(RandomManager.GetCodeInstructionOfRNGScope(RNGScope.EnemySpawn));
+
+        // Reset cursor
+        matcher.Start();
+
+        // Replacing UnityEngine.Random(float, float)
+        while (matcher.MatchForward(false, new CodeMatch(OpCodes.Call, UnityRangeFloatMI)).IsValid)
+            matcher
+            .Set(OpCodes.Call, IRNGRangeFloatMI)
+            .Insert(RandomManager.GetCodeInstructionOfRNGScope(RNGScope.EnemySpawn));
+
+        return matcher.InstructionEnumeration();
+    }
+
+    [HarmonyTranspiler]
+    [HarmonyPatch(nameof(EndlessGrid.SpawnUncommons))]
+    public static IEnumerable<CodeInstruction> SpawnUncommons_Transpiler(IEnumerable<CodeInstruction> instructions)
     {
         var matcher = new CodeMatcher(instructions);
 

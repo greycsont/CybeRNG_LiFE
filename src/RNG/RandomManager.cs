@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.Reflection.Emit;
 using HarmonyLib;
 
@@ -9,7 +7,7 @@ public class RandomManager
 {
     public static int seed = 114514;
     internal static bool seeded = false;
-    
+
     // patternRNG is independent with waveRNG
     public static IRandomNumberGenerator patternRNG;
     public static IRandomNumberGenerator waveRNG;
@@ -19,7 +17,7 @@ public class RandomManager
 
     public static void TryToInitializeRNG()
     {
-        if(seeded == false) return;
+        if (seeded == false) return;
 
         waveRNG = new PCG32(seed);
 
@@ -44,9 +42,9 @@ public class RandomManager
         if (scope == RNGScope.Default) ShowFuckUpSubtitle();
         return scope switch
         {
-            RNGScope.Pattern       => patternRNG.Range(min, max),
-            RNGScope.CubePosition  => cubePositionRNG.Range(min, max),
-            RNGScope.EnemySpawn    => enemySpawnRNG.Range(min, max),
+            RNGScope.Pattern => patternRNG.Range(min, max),
+            RNGScope.CubePosition => cubePositionRNG.Range(min, max),
+            RNGScope.EnemySpawn => enemySpawnRNG.Range(min, max),
             RNGScope.EnemyBehavior => enemyBehaviorRNG.Range(min, max),
             _ => UnityEngine.Random.Range(min, max)
         };
@@ -54,19 +52,19 @@ public class RandomManager
 
     public static float RangeFloat(float min, float max, RNGScope scope)
     {
-        if(seeded == false) return UnityEngine.Random.Range(min, max);
-        if(scope == RNGScope.Default) ShowFuckUpSubtitle();
+        if (seeded == false) return UnityEngine.Random.Range(min, max);
+        if (scope == RNGScope.Default) ShowFuckUpSubtitle();
         return scope switch
         {
-            RNGScope.Pattern       => patternRNG.Range(min, max),
-            RNGScope.CubePosition  => cubePositionRNG.Range(min, max),
-            RNGScope.EnemySpawn    => enemySpawnRNG.Range(min, max),
+            RNGScope.Pattern => patternRNG.Range(min, max),
+            RNGScope.CubePosition => cubePositionRNG.Range(min, max),
+            RNGScope.EnemySpawn => enemySpawnRNG.Range(min, max),
             RNGScope.EnemyBehavior => enemyBehaviorRNG.Range(min, max),
             _ => UnityEngine.Random.Range(min, max)
         };
     }
 
-    private static void ShowFuckUpSubtitle() => 
+    private static void ShowFuckUpSubtitle() =>
         SubtitleController.Instance.DisplaySubtitle("If you are reading this it means this mod is fucked up. Fuck infinite-state Machine", ignoreSetting: false);
 
     // IDK where to put it so i put it here

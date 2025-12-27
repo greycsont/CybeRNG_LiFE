@@ -1,7 +1,6 @@
 using GameConsole;
 using GameConsole.CommandTree;
 using plog;
-using System.Linq;
 using CybeRNG_LiFE.RNG;
 
 namespace CybeRNG_LiFE.Commands;
@@ -40,18 +39,18 @@ public sealed class CommandsToRegister(Console con) : CommandRoot(con), IConsole
     {
         Log.Info("CybeRNG_LiFE Commands");
         Log.Info("========================");
-        
+
         Log.Info("Available commands:");
-        
+
         Log.Info("  get");
         Log.Info("    └─ seed                     Get global seed");
-        
+
         Log.Info("  set");
         Log.Info("    └─ seed <int>               Set global seed");
-        
+
         Log.Info("  help                          List all commands");
         Log.Info("  reference                     List all references ");
-        
+
         Log.Info("Examples:");
         Log.Info("  cybernglife get seed");
         Log.Info("  cybernglife set seed 1114");
@@ -59,7 +58,7 @@ public sealed class CommandsToRegister(Console con) : CommandRoot(con), IConsole
 
     private void ListReference()
     {
-        
+
     }
 
     public Logger Log { get; } = new("cybernglife");

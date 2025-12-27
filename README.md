@@ -6,3 +6,4 @@ tbh this mod can be consider as Plagiarism, like the cheat, replace rng and cons
 ### Credits
 10_days_till_xmas
 I'll add reference about PCG32, XorShift32 and xoshiro128startstar later sry
+The .editorconfig is copied from https://github.com/ppy/osu/blob/master/CodeAnalysis/osu.globalconfig
