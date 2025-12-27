@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using CybeRNG_LiFE.RNG;
 
 namespace CybeRNG_LiFE;
 
@@ -11,6 +12,7 @@ public struct MiniEndlessGrid
     public int meleePositionsCount;
     public int projectilePositionsCount;
     public int hideousMassPositionCount;
+    public int numberOfHideousMass;
     public List<EnemyTypeTracker> spawnedEnemyTypes;
     public int baseSpawnPoint;
     public int points;
@@ -70,4 +72,43 @@ public struct MiniEndlessGrid
 		return (float)currentWave >= num + (float)spawnedEnemyTypes[indexOfEnemyType].amount * num2;
     }
 
+    public bool DetermineUncommonSpawn(int target, int amount, EndlessGrid endlessGrid)
+    {
+        amount = endlessGrid.CapUncommonsAmount(target, amount);
+        var spawnResult = false;
+        for (int i = 0; i < amount; i++)
+        {
+            var endlessEnemy = endlessGrid.prefabs.uncommonEnemies[target];
+            bool spawnOnProjectile = endlessEnemy.enemyType != EnemyType.Stalker && endlessEnemy.enemyType != EnemyType.Guttertank && RandomManager.enemySpawnRNG.Range(0f, 1f) > 0.5f;
+            if (spawnOnProjectile && projectilePositionsCount <= 0)
+            {
+                spawnOnProjectile = false;
+            }
+            if (meleePositionsCount <= 0)
+            {
+                break;
+            }
+            // IDK why but the original did that
+            var indexOfEnemyType = GetIndexOfEnemyType(endlessEnemy.enemyType);
+            int extraPointReduced = endlessEnemy.costIncreasePerSpawn * spawnedEnemyTypes[target].amount;
+            bool isSpawnRadiantSuccessfully = DetermineSpawnRadiant(endlessEnemy, indexOfEnemyType);
+            // I think it can be write as | isSpawnRadiantSuccessfully ? 3 : 1 |
+            points -= endlessEnemy.spawnCost * ((!isSpawnRadiantSuccessfully) ? 1 : 3) + extraPointReduced;
+            spawnedEnemyTypes[indexOfEnemyType].amount++;
+            if (spawnOnProjectile)
+            {
+                projectilePositionsCount--;
+            }
+            else
+            {
+                meleePositionsCount--;
+            }
+            spawnResult = true;
+            if (isSpawnRadiantSuccessfully)
+            {
+                amount -= 2;
+            }
+        }
+        return spawnResult;
+    }
 }
