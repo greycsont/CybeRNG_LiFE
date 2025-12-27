@@ -12,9 +12,9 @@ public struct MiniEndlessGrid
     public int meleePositionsCount;
     public int projectilePositionsCount;
     public int hideousMassPositionCount;
-    public int numberOfHideousMass;
+    public int numberOfHideousMass = 0;
     public List<EnemyTypeTracker> spawnedEnemyTypes;
-    public int baseSpawnPoint;
+    public int baseSpawnPoint = 0;
     public int points;
     public MiniEndlessGrid(int massAntiBuffer, float uncommonAntiBuffer, int specialAntiBuffer, int points)
     {
@@ -32,6 +32,7 @@ public struct MiniEndlessGrid
         projectilePositionsCount = 0;
         hideousMassPositionCount = 0;
         baseSpawnPoint = 0;
+        numberOfHideousMass = 0;
         spawnedEnemyTypes.Clear();
     }
     public void SetPositionCount(int meleePositionsCount, int projectilePositionsCount, int hideousMassPositionCount)
