@@ -32,6 +32,11 @@
       <private>false</private>
     </Reference>
 
+    <Reference Include="UnityEngine">
+      <HintPath>$(ManagedDir)\UnityEngine.dll</HintPath>
+      <private>false</private>
+    </Reference>
+
     <Reference Include="Unity.AI.Navigation">
       <HintPath>$(ManagedDir)\Unity.AI.Navigation.dll</HintPath>
       <private>false</private>

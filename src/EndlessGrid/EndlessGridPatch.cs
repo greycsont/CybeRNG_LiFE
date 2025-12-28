@@ -169,6 +169,10 @@ public class EndlessGridPatch
             new CodeInstruction(
                 OpCodes.Call,
                 AccessTools.Method(typeof(EndlessGrid), nameof(EndlessGrid.ShuffleDecks))
+            ),
+            new CodeInstruction(
+                OpCodes.Call,
+                AccessTools.Method(typeof(MiniEndlessGridManager), nameof(MiniEndlessGridManager.InitializeMiniEndlessGrid))
             )
         )
         .MatchForward(
@@ -183,7 +187,7 @@ public class EndlessGridPatch
             new CodeInstruction(OpCodes.Ldarg_0),
             new CodeInstruction(
                 OpCodes.Call,
-                AccessTools.Method(typeof(PredetermineManager), nameof(PredetermineManager.RoundCurrentPattern))
+                AccessTools.Method(typeof(MiniEndlessGridManager), nameof(MiniEndlessGridManager.RoundCurrentPattern))
             )
         )
         .MatchForward(
@@ -194,7 +198,14 @@ public class EndlessGridPatch
             )
         )
         .Advance(-1)
-        .RemoveInstructions(2);
+        .RemoveInstructions(2)
+        .Insert(
+            new CodeInstruction(OpCodes.Ldarg_0),
+            new CodeInstruction(
+                OpCodes.Call,
+                AccessTools.Method(typeof(MiniEndlessGridManager), nameof(MiniEndlessGridManager.AddAntiBufferToEndlessGrid))
+            )
+        );
 
         return matcher.InstructionEnumeration();
     }
