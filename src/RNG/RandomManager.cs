@@ -1,8 +1,11 @@
+using System;
 using System.Reflection.Emit;
 using HarmonyLib;
 
 using CybeRNG_LiFE.Cheats;
 using System.Runtime.Serialization.Formatters;
+using System.Text;
+using CybeRNG_LiFE.Util;
 
 namespace CybeRNG_LiFE.RNG;
 
@@ -30,8 +33,6 @@ public class RandomManager
 
     public static void TryToInitializeRNG()
     {
-        if (seeded == false) return;
-          
         if (testMode == true)
             seed = 114514;
         
@@ -90,9 +91,14 @@ public class RandomManager
             _ => UnityEngine.Random.Range(min, max)
         };
     }
-
+    
     private static void ShowFuckUpSubtitle() =>
         SubtitleController.Instance.DisplaySubtitle("If you are reading this it means this mod is fucked up. Fuck infinite-state Machine", ignoreSetting: false);
+
+    public static void WriteSeedToText(int startWave)
+    {
+        TextIO.WriteTextToFile("Log.txt", $"{TimeUtil.GetLocalTimeWithUtcOffset()}, Seed: {seed}, Start Wave: {startWave}\n");
+    }
 
     // IDK where to put it so i put it here
     public static CodeInstruction GetCodeInstructionOfRNGScope(RNGScope scope)

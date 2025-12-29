@@ -51,6 +51,9 @@ public class EndlessGridPatch
     private static readonly MethodInfo UnityRangeIntMI = AccessTools.Method(typeof(Random), nameof(Random.Range), new[] { typeof(int), typeof(int) });
     private static readonly MethodInfo UnityRangeFloatMI = AccessTools.Method(typeof(Random), nameof(Random.Range), new[] { typeof(float), typeof(float) });
 
+    
+    // ======= Harmony Patch =======
+    // --- RNG Generate Related ---
     private static void RandomizePatternFromEndlessGridStart(EndlessGrid endlessGrid)
     {
         for (int k = 0; k < endlessGrid.CurrentPatternPool.Length; k++)
@@ -63,8 +66,7 @@ public class EndlessGridPatch
 
         endlessGrid.ShuffleDecks();
     }
-    // ======= Harmony Patch =======
-    // --- RNG Generate Related ---
+
     [HarmonyPrefix]
     [HarmonyPatch(nameof(EndlessGrid.OnTriggerEnter))]
     public static void TryToGenerateRandomizer(ref Collider other)
@@ -209,13 +211,12 @@ public class EndlessGridPatch
             new CodeInstruction(OpCodes.Ldarg_0),
             new CodeInstruction(
                 OpCodes.Call,
-                AccessTools.Method(typeof(MiniEndlessGridManager), nameof(MiniEndlessGridManager.AddAntiBufferToEndlessGrid))
+                AccessTools.Method(typeof(MiniEndlessGridManager), nameof(MiniEndlessGridManager.ApplyAntiBufferAndOLoggingToEndlessGrid))
             )
         );
 
         return matcher.InstructionEnumeration();
     }
-
 
     [HarmonyPrefix]
     [HarmonyPatch(nameof(EndlessGrid.NextWave))]

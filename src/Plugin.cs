@@ -1,5 +1,6 @@
 ﻿using BepInEx;
 using BepInEx.Logging;
+using CybeRNG_LiFE.Cheats;
 using HarmonyLib;
 
 namespace CybeRNG_LiFE;
@@ -8,13 +9,13 @@ namespace CybeRNG_LiFE;
 public class Plugin : BaseUnityPlugin
 {
     internal static new ManualLogSource Logger;
+    internal static Harmony harmony = new Harmony(PluginInfo.PLUGIN_GUID);
 
     private void Awake()
     {
         // Plugin startup logic
         Logger = base.Logger;
-        var _harmony = new Harmony(PluginInfo.PLUGIN_GUID + ".harmony");
-        _harmony.PatchAll();
+        harmony.PatchAll();
         Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
     }
 }

@@ -1,4 +1,8 @@
 
+using CybeRNG_LiFE.RNG;
+using CybeRNG_LiFE.Util;
+using HarmonyLib;
+
 namespace CybeRNG_LiFE.Cheats;
 
 public sealed class UsingCustomRNGCheat : ICheat

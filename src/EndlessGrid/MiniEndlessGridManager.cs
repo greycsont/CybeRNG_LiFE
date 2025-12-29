@@ -29,12 +29,13 @@ public static class MiniEndlessGridManager
 
         PredetermineSpawn(endlessGrid);
     }
-    public static void AddAntiBufferToEndlessGrid(EndlessGrid endlessGrid)
+    public static void ApplyAntiBufferAndOLoggingToEndlessGrid(EndlessGrid endlessGrid)
     {
         endlessGrid.massAntiBuffer += miniEndlessGrid.massAntiBuffer;
         endlessGrid.uncommonAntiBuffer += miniEndlessGrid.uncommonAntiBuffer;
         endlessGrid.specialAntiBuffer += miniEndlessGrid.specialAntiBuffer;
         Plugin.Logger.LogDebug($"Added antibuffer to endlessgrid: H: {miniEndlessGrid.massAntiBuffer}, U: {miniEndlessGrid.uncommonAntiBuffer}, S: {miniEndlessGrid.specialAntiBuffer}");
+        RandomManager.WriteSeedToText(endlessGrid.startWave);
     }
 
     public static void InitializeMiniEndlessGrid()
