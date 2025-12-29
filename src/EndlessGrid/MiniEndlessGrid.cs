@@ -17,6 +17,8 @@ public struct MiniEndlessGrid
     public int meleePositionsCount;
     public int projectilePositionsCount;
     public int hideousMassPositionCount;
+    public int usedMeleePosition = 0;
+    public int usedProjectilePosition = 0;
     public int hideousMassSpawned = 0;
     public int uncommonSpawned = 0;
     public int specialSpawned = 0;
@@ -39,6 +41,8 @@ public struct MiniEndlessGrid
         hideousMassSpawned = 0;
         uncommonSpawned = 0;
         specialSpawned = 0;
+        usedMeleePosition = 0;
+        usedProjectilePosition = 0;
         spawnedEnemyTypes.Clear();
     }
     public void SetPositionCount(int meleePositionsCount, int projectilePositionsCount, int hideousMassPositionCount)
@@ -50,9 +54,11 @@ public struct MiniEndlessGrid
 
     public void PredetermineSpawn(EndlessGrid endlessGrid)
     {
+        Plugin.Logger.LogDebug($"[PredetermineSpawn] Wave: {currentWave}");
+        Plugin.Logger.LogDebug($"{hideousMassPositionCount}, {meleePositionsCount}, {projectilePositionsCount}");
         PredetermineHideous();
         PredetermineUncommonAndSpecial(endlessGrid);
-        Plugin.Logger.LogDebug($"[PredetermineSpawn] Wave: {currentWave}");
+
         Plugin.Logger.LogDebug($"H: {hideousMassSpawned} U: {uncommonSpawned} S: {specialSpawned}");
         Plugin.Logger.LogDebug($"AH: {massAntiBuffer} AU: {uncommonAntiBuffer} AS: {specialAntiBuffer}");
         ClearForNextWave();
@@ -84,11 +90,12 @@ public struct MiniEndlessGrid
                 currentWave >= (hideousMassesCount + 1) * 10 &&
                 points > 70)
             {
-                hideousMassSpawned++;
+                hideousMassesCount++;
                 points -= 45;
             }
         }
-        massAntiBuffer = Math.Max(0, massAntiBuffer += hideousMassSpawned > 0 ? hideousMassSpawned* 2 : -1);
+        hideousMassSpawned = hideousMassesCount;
+        massAntiBuffer = Math.Max(0, massAntiBuffer += hideousMassSpawned > 0 ? hideousMassSpawned * 2 : -1);
     }
 
     public bool DetermineSpawnRadiant(EndlessEnemy target, int indexOfEnemyType)
@@ -154,122 +161,125 @@ public struct MiniEndlessGrid
 
         if (baseSpawnPoint <= 0) return;
 
-        if (uncommonAntiBuffer < 1f && baseSpawnPoint > 0)
+        if (currentWave > 11)
         {
-            // It need to consume a RNG value so don't use lambda expression here
-            var numberOfFirstUncommon = RandomManager.enemySpawnRNG.Range(0, currentWave / 10 + 1);
-            if (uncommonAntiBuffer <= 0.5f && numberOfFirstUncommon < 1)
-                numberOfFirstUncommon = 1;
-
-            if (massAntiBuffer < 1f && meleePositionsCount > 0)
+            if (uncommonAntiBuffer < 1f && baseSpawnPoint > 0)
             {
-                int firstUncommonIndex = RandomManager.enemySpawnRNG.Range(0, endlessGrid.prefabs.uncommonEnemies.Length);
-                int secondUncommonIndex = RandomManager.enemySpawnRNG.Range(0, endlessGrid.prefabs.uncommonEnemies.Length);
-                int numberOfSecondUncommon = 0;
+                // It need to consume a RNG value so don't use lambda expression here
+                var numberOfFirstUncommon = RandomManager.enemySpawnRNG.Range(0, currentWave / 10 + 1);
+                if (uncommonAntiBuffer <= -0.5f && numberOfFirstUncommon < 1)
+                    numberOfFirstUncommon = 1;
 
-                while (firstUncommonIndex >= 0 && currentWave < endlessGrid.prefabs.uncommonEnemies[firstUncommonIndex].spawnWave)
-                    firstUncommonIndex--;
-
-                while (secondUncommonIndex >= 0 && (currentWave < endlessGrid.prefabs.uncommonEnemies[secondUncommonIndex].spawnWave || secondUncommonIndex == firstUncommonIndex))
+                if (numberOfFirstUncommon > 0 && meleePositionsCount > 0)
                 {
-                    if (secondUncommonIndex == 0)
-                    {
-                        numberOfSecondUncommon = -1;
-                        break;
-                    }
-                    secondUncommonIndex--;
-                }
-                if (firstUncommonIndex >= 0)
-                {
-                    if (currentWave > 16)
-                    {
-                        if (currentWave < 25)
-                        {
-                            numberOfFirstUncommon++;
-                        }
-                        else if (numberOfSecondUncommon != -1)
-                        {
-                            numberOfSecondUncommon = numberOfFirstUncommon;
-                        }
-                    }
+                    int firstUncommonIndex = RandomManager.enemySpawnRNG.Range(0, endlessGrid.prefabs.uncommonEnemies.Length);
+                    int secondUncommonIndex = RandomManager.enemySpawnRNG.Range(0, endlessGrid.prefabs.uncommonEnemies.Length);
+                    int numberOfSecondUncommon = 0;
 
-                    bool isFirstUncommonSpawnSuccessfully = DetermineUncommonSpawn(firstUncommonIndex, numberOfFirstUncommon, endlessGrid);
-                    bool isSecondUncommonSpawnSuccessfully = false;
-                    if (numberOfSecondUncommon > 0)
-                        isSecondUncommonSpawnSuccessfully = DetermineUncommonSpawn(secondUncommonIndex, numberOfSecondUncommon, endlessGrid);                    
-                    if (isFirstUncommonSpawnSuccessfully || isSecondUncommonSpawnSuccessfully)
+                    while (firstUncommonIndex >= 0 && currentWave < endlessGrid.prefabs.uncommonEnemies[firstUncommonIndex].spawnWave)
+                        firstUncommonIndex--;
+
+                    while (secondUncommonIndex >= 0 && (currentWave < endlessGrid.prefabs.uncommonEnemies[secondUncommonIndex].spawnWave || secondUncommonIndex == firstUncommonIndex))
                     {
-                        if (uncommonAntiBuffer < 0f)
+                        if (secondUncommonIndex == 0)
                         {
-                            uncommonAntiBuffer = 0f;
+                            numberOfSecondUncommon = -1;
+                            break;
                         }
-                        if (isFirstUncommonSpawnSuccessfully)
+                        secondUncommonIndex--;
+                    }
+                    if (firstUncommonIndex >= 0)
+                    {
+                        if (currentWave > 16)
                         {
-                            uncommonAntiBuffer += (endlessGrid.prefabs.uncommonEnemies[firstUncommonIndex].enemyType == EnemyType.Stalker 
-                                                                   || endlessGrid.prefabs.uncommonEnemies[firstUncommonIndex].enemyType == EnemyType.Idol) ? 1f : 0.5f;
+                            if (currentWave < 25)
+                            {
+                                numberOfFirstUncommon++;
+                            }
+                            else if (numberOfSecondUncommon != -1)
+                            {
+                                numberOfSecondUncommon = numberOfFirstUncommon;
+                            }
                         }
-                        if (isSecondUncommonSpawnSuccessfully)
+
+                        bool isFirstUncommonSpawnSuccessfully = DetermineUncommonSpawn(firstUncommonIndex, numberOfFirstUncommon, endlessGrid);
+                        bool isSecondUncommonSpawnSuccessfully = false;
+                        if (numberOfSecondUncommon > 0)
+                            isSecondUncommonSpawnSuccessfully = DetermineUncommonSpawn(secondUncommonIndex, numberOfSecondUncommon, endlessGrid);                    
+                        if (isFirstUncommonSpawnSuccessfully || isSecondUncommonSpawnSuccessfully)
                         {
-                            uncommonAntiBuffer += (endlessGrid.prefabs.uncommonEnemies[secondUncommonIndex].enemyType == EnemyType.Stalker 
-                                                                   || endlessGrid.prefabs.uncommonEnemies[secondUncommonIndex].enemyType == EnemyType.Idol) ? 1f : 0.5f;
+                            if (uncommonAntiBuffer < 0f)
+                            {
+                                uncommonAntiBuffer = 0f;
+                            }
+                            if (isFirstUncommonSpawnSuccessfully)
+                            {
+                                uncommonAntiBuffer += (endlessGrid.prefabs.uncommonEnemies[firstUncommonIndex].enemyType == EnemyType.Stalker 
+                                                                    || endlessGrid.prefabs.uncommonEnemies[firstUncommonIndex].enemyType == EnemyType.Idol) ? 1f : 0.5f;
+                            }
+                            if (isSecondUncommonSpawnSuccessfully)
+                            {
+                                uncommonAntiBuffer += (endlessGrid.prefabs.uncommonEnemies[secondUncommonIndex].enemyType == EnemyType.Stalker 
+                                                                    || endlessGrid.prefabs.uncommonEnemies[secondUncommonIndex].enemyType == EnemyType.Idol) ? 1f : 0.5f;
+                            }
+                            baseSpawnPoint -= (!(isFirstUncommonSpawnSuccessfully && isSecondUncommonSpawnSuccessfully)) ? 1 : 2;
                         }
-                        baseSpawnPoint -= (!(isFirstUncommonSpawnSuccessfully && isSecondUncommonSpawnSuccessfully)) ? 1 : 2;
                     }
                 }
             }
-        }
-        else
-        {
-            uncommonAntiBuffer -= 1f;
-        }
-        if (currentWave > 15)
-        {
-            var isSpawnSpecialSuccessfully = false;
-            if (specialAntiBuffer <= 0 && baseSpawnPoint > 0)
+            else
             {
-                int numberOfSpecial = RandomManager.enemySpawnRNG.Range(0, baseSpawnPoint + 1);
-                if (specialAntiBuffer <= -2 && numberOfSpecial < 1)
+                uncommonAntiBuffer -= 1f;
+            }
+            if (currentWave > 15)
+            {
+                var isSpawnSpecialSuccessfully = false;
+                if (specialAntiBuffer <= 0 && baseSpawnPoint > 0)
                 {
-                    numberOfSpecial = 1;
-                }
-                if (numberOfSpecial > 0 && meleePositionsCount > 0)
-                {
-                    for (int i = 0; i < numberOfSpecial; i++)
+                    int numberOfSpecial = RandomManager.enemySpawnRNG.Range(0, baseSpawnPoint + 1);
+                    if (specialAntiBuffer <= -2 && numberOfSpecial < 1)
                     {
-                        int indexOfSpecial = RandomManager.enemySpawnRNG.Range(0, endlessGrid.prefabs.specialEnemies.Length);
-                        int indexOfEnemyType = GetIndexOfEnemyType(endlessGrid.prefabs.specialEnemies[indexOfSpecial].enemyType);
-                        float extraPointReduced = 0f;
-                        while (indexOfSpecial >= 0 && meleePositionsCount > 0)
+                        numberOfSpecial = 1;
+                    }
+                    if (numberOfSpecial > 0 && meleePositionsCount > 0)
+                    {
+                        for (int i = 0; i < numberOfSpecial; i++)
                         {
-                            if (currentWave >= endlessGrid.prefabs.specialEnemies[indexOfSpecial].spawnWave 
-                                   && points >= endlessGrid.prefabs.specialEnemies[indexOfSpecial].spawnCost + extraPointReduced)
+                            int indexOfSpecial = RandomManager.enemySpawnRNG.Range(0, endlessGrid.prefabs.specialEnemies.Length);
+                            int indexOfEnemyType = GetIndexOfEnemyType(endlessGrid.prefabs.specialEnemies[indexOfSpecial].enemyType);
+                            float extraPointReduced = 0f;
+                            while (indexOfSpecial >= 0 && meleePositionsCount > 0)
                             {
-                                bool isSpawnRadiantSuccessfully = DetermineSpawnRadiant(endlessGrid.prefabs.specialEnemies[indexOfSpecial], indexOfEnemyType);
-                                points -= Mathf.RoundToInt((float)(endlessGrid.prefabs.specialEnemies[indexOfSpecial].spawnCost * ((!isSpawnRadiantSuccessfully) ? 1 : 3)) + extraPointReduced);
-                                extraPointReduced += endlessGrid.prefabs.specialEnemies[indexOfSpecial].costIncreasePerSpawn * ((!isSpawnRadiantSuccessfully) ? 1 : 3);
-                                spawnedEnemyTypes[indexOfEnemyType].amount++;
-                                meleePositionsCount--;
-                                if (specialAntiBuffer < 0)
+                                if (currentWave >= endlessGrid.prefabs.specialEnemies[indexOfSpecial].spawnWave 
+                                    && points >= endlessGrid.prefabs.specialEnemies[indexOfSpecial].spawnCost + extraPointReduced)
                                 {
-                                    specialAntiBuffer = 0;
+                                    bool isSpawnRadiantSuccessfully = DetermineSpawnRadiant(endlessGrid.prefabs.specialEnemies[indexOfSpecial], indexOfEnemyType);
+                                    points -= Mathf.RoundToInt((float)(endlessGrid.prefabs.specialEnemies[indexOfSpecial].spawnCost * ((!isSpawnRadiantSuccessfully) ? 1 : 3)) + extraPointReduced);
+                                    extraPointReduced += endlessGrid.prefabs.specialEnemies[indexOfSpecial].costIncreasePerSpawn * ((!isSpawnRadiantSuccessfully) ? 1 : 3);
+                                    spawnedEnemyTypes[indexOfEnemyType].amount++;
+                                    meleePositionsCount--;
+                                    if (specialAntiBuffer < 0)
+                                    {
+                                        specialAntiBuffer = 0;
+                                    }
+                                    specialAntiBuffer++;
+                                    specialSpawned++;
+                                    isSpawnSpecialSuccessfully = true;
+                                    break;
                                 }
-                                specialAntiBuffer++;
-                                specialSpawned++;
-                                isSpawnSpecialSuccessfully = true;
-                                break;
-                            }
-                            indexOfSpecial--;
-                            if (indexOfSpecial >= 0)
-                            {
-                                indexOfEnemyType = GetIndexOfEnemyType(endlessGrid.prefabs.specialEnemies[indexOfSpecial].enemyType);
+                                indexOfSpecial--;
+                                if (indexOfSpecial >= 0)
+                                {
+                                    indexOfEnemyType = GetIndexOfEnemyType(endlessGrid.prefabs.specialEnemies[indexOfSpecial].enemyType);
+                                }
                             }
                         }
                     }
                 }
-            }
-            if (!isSpawnSpecialSuccessfully)
-            {
-                specialAntiBuffer--;
+                if (!isSpawnSpecialSuccessfully)
+                {
+                    specialAntiBuffer--;
+                }
             }
         }
     }

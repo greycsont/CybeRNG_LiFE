@@ -94,6 +94,8 @@ public class EndlessGridPatch
         //IL_002c: stfld int32 EndlessGrid::currentWave
         //------------------ insert RandomizePatternFromEndlessGridStart() here  ------------------
         //------------------ move ShuffleDecks() from bottom to here  ------------------
+        //------------------ insert InitializeMiniEndlessGrid() ------------------
+        //------------------ insert DisplayCurrentSetting() ------------------
         // for (int i = 1; i <= currentWave; i++)
         //IL_0031: ldc.i4.1
         //IL_0032: stloc.0
@@ -173,6 +175,10 @@ public class EndlessGridPatch
             new CodeInstruction(
                 OpCodes.Call,
                 AccessTools.Method(typeof(MiniEndlessGridManager), nameof(MiniEndlessGridManager.InitializeMiniEndlessGrid))
+            ),
+            new CodeInstruction(
+                OpCodes.Call,
+                AccessTools.Method(typeof(RandomManager), nameof(RandomManager.DisplayCurrentSetting))
             )
         )
         .MatchForward(
@@ -221,9 +227,7 @@ public class EndlessGridPatch
     [HarmonyPatch(nameof(EndlessGrid.Start))]
     public static bool RuinStartShuffling(EndlessGrid __instance)
     {
-        RandomManager.seeded = CheatsManager.KeepCheatsEnabled
-                  && PrefsManager.Instance.GetBool($"cheat.{UsingCustomRNGCheat.IDENTIFIER}");
-
+        RandomManager.InitializeState();
         if (RandomManager.seeded == false) return true;
 
         var eg = __instance;

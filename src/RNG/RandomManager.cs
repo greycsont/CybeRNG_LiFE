@@ -1,12 +1,17 @@
 using System.Reflection.Emit;
 using HarmonyLib;
 
+using CybeRNG_LiFE.Cheats;
+using System.Runtime.Serialization.Formatters;
+
 namespace CybeRNG_LiFE.RNG;
 
 public class RandomManager
 {
-    public static int seed = 114514;
+    public static int seed = -1;
     internal static bool seeded = false;
+    internal static bool testMode = false;
+    internal static bool fixedSeed = false;
 
     // patternRNG is independent with waveRNG
     public static IRandomNumberGenerator patternRNG;
@@ -14,16 +19,38 @@ public class RandomManager
     public static IRandomNumberGenerator cubePositionRNG;
     public static IRandomNumberGenerator enemySpawnRNG;
     public static IRandomNumberGenerator enemyBehaviorRNG;
+    public static void InitializeState()
+    {
+        seeded = CheatsManager.KeepCheatsEnabled
+                  && PrefsManager.Instance.GetBool($"cheat.{UsingCustomRNGCheat.IDENTIFIER}");
+
+        if (fixedSeed == false)
+            seed = UnityEngine.Random.Range(0, int.MaxValue);
+    }
 
     public static void TryToInitializeRNG()
     {
         if (seeded == false) return;
-
+          
+        if (testMode == true)
+            seed = 114514;
+        
+        if (seed == -1)
+        {
+            Plugin.Logger.LogDebug("seed not initialized yet, randomly geenrate a seed");
+            seed = UnityEngine.Random.Range(0, int.MaxValue);
+        }
+            
         waveRNG = new PCG32(seed);
 
         patternRNG = new PCG32(seed, 2);
 
         FreshRNG();
+    }
+
+    public static void DisplayCurrentSetting()
+    {
+        SubtitleController.Instance.DisplaySubtitle($"current seed: {seed}", ignoreSetting: false);
     }
     public static void FreshRNG()
     {

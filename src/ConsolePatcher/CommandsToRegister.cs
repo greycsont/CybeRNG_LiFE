@@ -31,7 +31,9 @@ public sealed class CommandsToRegister(Console con) : CommandRoot(con), IConsole
     private Branch SetBranches()
     {
         return Branch("set",
-            Leaf<int>("seed", seed => RandomManager.seed = seed)
+            Leaf<int>("seed", seed => RandomManager.seed = seed),
+            Leaf<bool>("testmode", testmode => RandomManager.testMode = testmode),
+            Leaf<bool>("fixedseed", fixedSeed => RandomManager.fixedSeed = fixedSeed)
         );
     }
 
@@ -47,6 +49,8 @@ public sealed class CommandsToRegister(Console con) : CommandRoot(con), IConsole
 
         Log.Info("  set");
         Log.Info("    └─ seed <int>               Set global seed");
+        Log.Info("    └─ testmode <bool>          enable testmode (using a const seed)");
+
 
         Log.Info("  help                          List all commands");
         Log.Info("  reference                     List all references ");
