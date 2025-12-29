@@ -9,7 +9,7 @@ public sealed class UsingCustomRNGCheat : ICheat
 {
     public string LongName => "Using Custom RNG";
     public string Identifier => IDENTIFIER;
-    public const string IDENTIFIER = "cyberseedsetter.seed-override";
+    public const string IDENTIFIER = "cyberng_life.customrng";
     public string ButtonEnabledOverride => null!;
     public string ButtonDisabledOverride => null!;
     public string Icon => "warning";
