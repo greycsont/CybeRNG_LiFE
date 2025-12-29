@@ -1,8 +1,9 @@
 ### CybeRNG_LiFE
-This MF will broke cybergrind so don't install it
+This MF/DOGSHIT/ or whatever will broke cybergrind so don't install it
 
-I upload it cuz deadline of other things
+reason to upload it is cuz deadline of other things
 
+fixed pattern, fixed enemy per seed __theoretically__
 ### How to use it
 - Enter cybergrind
 
@@ -21,3 +22,13 @@ I upload it cuz deadline of other things
 
 ### Credits
 type cybernglife reference in game to see it
+
+font used:
+
+title: comic mono
+
+author: 新叶念体 / XinYeNianTi-2
+
+I can't push to github consisdently so it the code is not match to the output dll's version
+
+你是谁，请支持[魔法少女的魔女审判](https://store.steampowered.com/app/3101040)
